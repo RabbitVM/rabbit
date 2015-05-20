@@ -1,0 +1,748 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Rabbit VM</title>
+<!-- 2015-05-20 Wed 00:37 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Maxwell Bernstein" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="style.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Rabbit VM</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Why?</a></li>
+<li><a href="#sec-2">2. What?</a>
+<ul>
+<li><a href="#sec-2-1">2.1. Definitions</a></li>
+<li><a href="#sec-2-2">2.2. Registers</a>
+<ul>
+<li><a href="#sec-2-2-1">2.2.1. Flags</a></li>
+</ul>
+</li>
+<li><a href="#sec-2-3">2.3. Instruction set</a>
+<ul>
+<li><a href="#sec-2-3-1">2.3.1. Real instructions</a></li>
+<li><a href="#sec-2-3-2">2.3.2. Assembler macros</a></li>
+</ul>
+</li>
+<li><a href="#sec-2-4">2.4. Addressing modes</a>
+<ul>
+<li><a href="#sec-2-4-1">2.4.1. <span class="todo TODO">TODO</span> FIGURE OUT IF DEREFERENCE IS BYTE OR WORD</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#sec-3">3. How?</a>
+<ul>
+<li><a href="#sec-3-1">3.1. Instruction formats</a></li>
+<li><a href="#sec-3-2">3.2. Stages of compilation</a>
+<ul>
+<li><a href="#sec-3-2-1">3.2.1. Preprocessing</a></li>
+<li><a href="#sec-3-2-2">3.2.2. Peephole optimization</a></li>
+<li><a href="#sec-3-2-3">3.2.3. Assembling</a></li>
+</ul>
+</li>
+<li><a href="#sec-3-3">3.3. <span class="todo TODO">TODO</span> </a>
+<ul>
+<li><a href="#sec-3-3-1">3.3.1. Floating point</a></li>
+<li><a href="#sec-3-3-2">3.3.2. Memory layout</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Why?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+I would like to make a RISC architecture that is capable of comfortably sitting
+on top of nearly any other architecture. If it's possible to compile to Rabbit,
+then a program can run on more or less any hardware or virtualized architecture.
+</p>
+
+<p>
+Rabbit will be optimized per-architecture, while maintaining the same
+interface. It may, for example, take advantage of Intel's SIMD behind the
+scenes.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> What?</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> Definitions</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+<b>space:</b> A register or memory location.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> Registers</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+Registers are 32 bits wide.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left"><i>Value</i></th>
+<th scope="col" class="left"><i>Register</i></th>
+<th scope="col" class="left"><i>Use</i></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left"><code>0x0</code></td>
+<td class="left"><code>zero</code></td>
+<td class="left">Contains 0. MIPS style.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x1</code> .. <code>0x9</code></td>
+<td class="left"><code>r1</code> .. <code>r9</code></td>
+<td class="left">General purpose.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xA</code></td>
+<td class="left"><code>ip</code></td>
+<td class="left">Instruction pointer.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xB</code></td>
+<td class="left"><code>sp</code></td>
+<td class="left">Stack pointer.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xC</code></td>
+<td class="left"><code>ret</code></td>
+<td class="left">Returned value.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xD</code></td>
+<td class="left"><code>tmp</code></td>
+<td class="left">Temporary register.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xE</code></td>
+<td class="left"><code>flags</code></td>
+<td class="left">Flags used for comparison.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<a id="flags_section" name="flags_section"></a>
+</p>
+</div>
+<div id="outline-container-sec-2-2-1" class="outline-4">
+<h4 id="sec-2-2-1"><span class="section-number-4">2.2.1</span> Flags</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left"><i>Bit</i></th>
+<th scope="col" class="left"><i>Flag</i></th>
+<th scope="col" class="left"><i>Meaning</i></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left"><code>0x0</code></td>
+<td class="left"><code>SF</code></td>
+<td class="left">Sign flag. On if sign bit of result is on.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x1</code></td>
+<td class="left"><code>ZF</code></td>
+<td class="left">Zero flag. On if result is zero or numbers were the same.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x2</code> .. <code>0x20</code></td>
+<td class="left">&#xa0;</td>
+<td class="left">Reserved.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> Instruction set</h3>
+<div class="outline-text-3" id="text-2-3">
+</div><div id="outline-container-sec-2-3-1" class="outline-4">
+<h4 id="sec-2-3-1"><span class="section-number-4">2.3.1</span> Real instructions</h4>
+<div class="outline-text-4" id="text-2-3-1">
+<p>
+When it makes sense, the destination register is the first argument to an
+instruction. The last argument to the following instructions may also be an
+immediate value, denoted with a prefix of <code>$</code>: <code>move</code>, <code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>,
+<code>shr</code>, <code>shl</code>, <code>nand</code>, <code>xor</code>, <code>br</code>, <code>brz</code>, <code>brnz</code>.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left"><i>Value</i></th>
+<th scope="col" class="left"><i>Instruction</i></th>
+<th scope="col" class="left"><i>Usage</i></th>
+<th scope="col" class="left"><i>Explanation</i></th>
+<th scope="col" class="left"><i>Description</i></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left"><code>0x0</code></td>
+<td class="left"><code>halt</code></td>
+<td class="left"><code>halt</code></td>
+<td class="left">&#xa0;</td>
+<td class="left">Stop the execution of the machine immediately.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x1</code></td>
+<td class="left"><code>move</code></td>
+<td class="left"><code>move %r1, %r2</code></td>
+<td class="left"><code>r[2] := r[1]</code></td>
+<td class="left">Move one space into another.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x2</code></td>
+<td class="left"><code>add</code></td>
+<td class="left"><code>add %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] + r[3]</code></td>
+<td class="left">Add two spaces into a third.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x3</code></td>
+<td class="left"><code>sub</code></td>
+<td class="left"><code>sub %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] - r[3]</code></td>
+<td class="left">Subtract two spaces into a third. Sets <a href="#flags_section">flags</a>.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x4</code></td>
+<td class="left"><code>mul</code></td>
+<td class="left"><code>mul %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] * r[3]</code></td>
+<td class="left">Multiply two spaces into a third.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x5</code></td>
+<td class="left"><code>div</code></td>
+<td class="left"><code>div %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] / r[3]</code></td>
+<td class="left">Divide two spaces into a third.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x6</code></td>
+<td class="left"><code>shr</code></td>
+<td class="left"><code>shr %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] &gt;&gt; r[3]</code></td>
+<td class="left">Shift right one space a number of times.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x7</code></td>
+<td class="left"><code>shl</code></td>
+<td class="left"><code>shl %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] &lt;&lt; r[3]</code></td>
+<td class="left">Shift left one space a number of times.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x8</code></td>
+<td class="left"><code>nand</code></td>
+<td class="left"><code>nand %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := not(r[2] &amp; r[3])</code></td>
+<td class="left">NAND two spaces.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0x9</code></td>
+<td class="left"><code>xor</code></td>
+<td class="left"><code>xor %r1, %r2, %r3</code></td>
+<td class="left"><code>r[1] := r[2] ^ r[3]</code></td>
+<td class="left">XOR two spaces.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xA</code></td>
+<td class="left"><code>br</code></td>
+<td class="left"><code>br %r1</code></td>
+<td class="left"><code>goto r[1]</code></td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xB</code></td>
+<td class="left"><code>brz</code></td>
+<td class="left"><code>brz %r1</code></td>
+<td class="left"><code>if (ZF set) goto r[1]</code></td>
+<td class="left">Branch if <code>ZF</code> is set.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xC</code></td>
+<td class="left"><code>brnz</code></td>
+<td class="left"><code>brnz %r1</code></td>
+<td class="left"><code>if (!(ZF set)) goto r[1]</code></td>
+<td class="left">Branch if <code>ZF</code> is not set.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xD</code></td>
+<td class="left"><code>in</code></td>
+<td class="left"><code>in %r1</code></td>
+<td class="left"><code>r[1] := getchar()</code></td>
+<td class="left">Read one character from <code>stdin</code> into a space.</td>
+</tr>
+
+<tr>
+<td class="left"><code>0xE</code></td>
+<td class="left"><code>out</code></td>
+<td class="left"><code>out %r1</code></td>
+<td class="left"><code>putchar(r[1])</code></td>
+<td class="left">Print one character from a space to <code>stdout</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3-2" class="outline-4">
+<h4 id="sec-2-3-2"><span class="section-number-4">2.3.2</span> Assembler macros</h4>
+<div class="outline-text-4" id="text-2-3-2">
+<p>
+The last argument to the following macros may also be an immediate value,
+denoted with a prefix of <code>$</code>: <code>cmp</code>, <code>not</code>, <code>push</code>, <code>call</code>.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left"><i>Macro</i></th>
+<th scope="col" class="left"><i>Usage</i></th>
+<th scope="col" class="left"><i>Expansion</i></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left"><code>cmp</code></td>
+<td class="left"><code>cmp %r1, %r2</code></td>
+<td class="left"><code>sub %tmp, %r1, %r2</code></td>
+</tr>
+
+<tr>
+<td class="left"><code>not</code></td>
+<td class="left"><code>not %r1, %r2</code></td>
+<td class="left"><code>nand %r1, %r2, %r2</code></td>
+</tr>
+
+<tr>
+<td class="left"><code>or</code></td>
+<td class="left"><code>or %r1, %r2, %r3</code></td>
+<td class="left">(A <code>nand</code> A) <code>nand</code> (B <code>nand</code> B)</td>
+</tr>
+
+<tr>
+<td class="left"><code>and</code></td>
+<td class="left"><code>and %r1, %r2, %r3</code></td>
+<td class="left">(A <code>nand</code> B) <code>nand</code> (A <code>nand</code> B)</td>
+</tr>
+
+<tr>
+<td class="left"><code>push</code></td>
+<td class="left"><code>push %r1</code></td>
+<td class="left"><code>move (%sp), $1</code>, <code>sub %sp, %sp, $1</code></td>
+</tr>
+
+<tr>
+<td class="left"><code>pop</code></td>
+<td class="left"><code>pop %r1</code></td>
+<td class="left"><code>add %sp, %sp, $1</code>, <code>move %r1, (%sp)</code></td>
+</tr>
+
+<tr>
+<td class="left"><code>call</code></td>
+<td class="left"><code>call %r1</code></td>
+<td class="left"><code>push %ip</code>, <code>br %r1</code></td>
+</tr>
+
+<tr>
+<td class="left"><code>ret</code></td>
+<td class="left"><code>ret</code></td>
+<td class="left"><code>pop %ip</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4"><span class="section-number-3">2.4</span> Addressing modes</h3>
+<div class="outline-text-3" id="text-2-4">
+<p>
+There are two addressing modes: <code>%reg</code> and <code>(%reg)</code>. The former uses the value
+in the register, and the latter uses the byte TODO
+</p>
+</div>
+
+<div id="outline-container-sec-2-4-1" class="outline-4">
+<h4 id="sec-2-4-1"><span class="section-number-4">2.4.1</span> <span class="todo TODO">TODO</span> FIGURE OUT IF DEREFERENCE IS BYTE OR WORD</h4>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> How?</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Instruction formats</h3>
+<div class="outline-text-3" id="text-3-1">
+<pre class="example">
+instr %rA, %rB, %rC
+instr %rA, %rB
+instr %rA
+</pre>
+
+<pre class="example">
+    +--Immediate?
+    | +--Addressing mode bit C
+    | |+--Addressing mode bit B
+    | ||+--Addressing mode bit A
+    | ||| +Dead space+    regB
+    v vvv vvvvvvvvvvvv    vvvv
+IIIIM DDD 000000000000CCCCBBBBAAAA
+^^^^                  ^^^^    ^^^^
+Opcode                regC    regA
+
+VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Immediate value
+</pre>
+
+<p>
+If the immediate bit is on, then the instruction disregards <code>rC</code> and instead
+looks for its third argument in the 32 bits after the first instruction. For example:
+</p>
+
+<pre class="example">
+1: 0001 1 000 000000000000 0001 0000 0000
+2: 0000 0 000 000000000000 0000 0000 0111
+</pre>
+
+<p>
+represents a <code>move</code> instruction with the immediate bit set. It will therefore
+look for an immediate value in the following word (in this case, the value is
+7), and then store it in <code>r1</code>.
+</p>
+
+<p>
+Addition works in a similar fashion:
+</p>
+
+<pre class="example">
+1: 0010 1 000 000000000000 0001 0001 0000
+2: 0000 0 000 000000000000 0000 0000 0001
+</pre>
+
+<p>
+represents an <code>add</code> instruction with the immediate bit set. It looks for an
+immediate value in the following word (in this case, 1), adds it to the value in
+<code>r1</code>, then stores the result in <code>r1</code>. So this instruction would be an increment
+instruction.
+</p>
+
+<p>
+The addressing mode bits are simple; if a register's addressing mode bit is on,
+then the address in the register is dereferenced when the instruction is being
+executed, and that data is used instead. For example:
+</p>
+
+<pre class="example">
+1: 0010 0 100 000000000000 0111 0001 0000
+</pre>
+
+<p>
+Performs an addition operation that adds the contents of <code>zero</code> with <code>r1</code> and
+stores the result in memory at the address in <code>r7</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Stages of compilation</h3>
+<div class="outline-text-3" id="text-3-2">
+</div><div id="outline-container-sec-3-2-1" class="outline-4">
+<h4 id="sec-3-2-1"><span class="section-number-4">3.2.1</span> Preprocessing</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+The preprocessor will be responsible for macro expansion and label to address
+translation. Macros exist in the form of instruction expansions, done behind the
+scenes.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2-2" class="outline-4">
+<h4 id="sec-3-2-2"><span class="section-number-4">3.2.2</span> Peephole optimization</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<p>
+Ensure that, with macro expansion, we are not setting a register repeatedly. For
+example:
+</p>
+
+<pre class="example">
+push %r1
+</pre>
+
+<p>
+expands to
+</p>
+
+<pre class="example">
+move (%sp), %r1
+add %sp, %sp, $1
+</pre>
+
+<p>
+. If we had multiple pushes, it's quite possible that we would have multiple
+unnecessary <code>loadi</code> instructions, and not touch <code>r1</code> otherwise. Peephole
+optimization notices this and removes it.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2-3" class="outline-4">
+<h4 id="sec-3-2-3"><span class="section-number-4">3.2.3</span> Assembling</h4>
+</div>
+</div>
+
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> <span class="todo TODO">TODO</span> </h3>
+<div class="outline-text-3" id="text-3-3">
+</div><div id="outline-container-sec-3-3-1" class="outline-4">
+<h4 id="sec-3-3-1"><span class="section-number-4">3.3.1</span> Floating point</h4>
+<div class="outline-text-4" id="text-3-3-1">
+<p>
+Floating point computation is left to the client (an exercise for the reader, if
+you will).
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-3-2" class="outline-4">
+<h4 id="sec-3-3-2"><span class="section-number-4">3.3.2</span> Memory layout</h4>
+<div class="outline-text-4" id="text-3-3-2">
+<p>
+The memory layout is completely flat right now.
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: May 16, 2015</p>
+<p class="author">Author: Maxwell Bernstein</p>
+<p class="date">Created: 2015-05-20 Wed 00:37</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
