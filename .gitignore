@@ -1,7 +1,6 @@
 *.bc
 *.ll
-*.html
-*.pdf
 \#*
 *.tex
 *.out
+*~
