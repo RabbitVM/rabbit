@@ -170,9 +170,10 @@ scenes.
 
 *** TODO Assembling
 
-** C interface
+# TODO: add C interface
+# ** C interface
 
-#+INCLUDE: "rabbit.h" src c
+# #+INCLUDE: "rabbit.h" src c
 
 ** TODO
 
