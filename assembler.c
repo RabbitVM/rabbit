@@ -134,17 +134,6 @@ static word three_register (unsigned char op, int ra, int rb, int rc) {
     return w;
 }
 
-/* static word load_val (unsigned ra, unsigned val) { */
-/*     static const char RA_LSB = 25; */
-
-/*     word w = 0; */
-/*     w |= (LOADV & OP_MASK) << OP_LSB; */
-/*     w |= (ra & REG_MASK) << RA_LSB; */
-/*     w |= (val & VAL_MASK); */
-
-/*     return w; */
-/* } */
-
 static unsigned read_reg (FILE *input) {
     unsigned reg = 0;
     fscanf(input, " r%d", &reg);
