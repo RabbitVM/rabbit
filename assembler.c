@@ -117,13 +117,12 @@ static const char OP_WIDTH = 4;
 static const char OP_LSB = 32 - OP_WIDTH;
 
 static const unsigned char OP_MASK = 0xF;
-static const unsigned char REG_MASK = 07;
-static const unsigned VAL_MASK = 0x1FFFFFF;
+static const unsigned char REG_MASK = 0xF;
 
 static word three_register (unsigned char op, int ra, int rb, int rc) {
-    static const char RA_LSB = 6;
-    static const char RB_LSB = 3;
-    static const char RC_LSB = 0;
+    static const char RA_LSB = 0;
+    static const char RB_LSB = 4;
+    static const char RC_LSB = 8;
 
     word w = 0;
     w |= (op & OP_MASK) << OP_LSB;
