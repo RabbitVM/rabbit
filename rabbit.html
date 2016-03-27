@@ -3,8 +3,8 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<title>Rabbit VM</title>
-<!-- 2015-05-20 Wed 14:50 -->
+<title>Rabbit VM RFC</title>
+<!-- 2016-03-27 Sun 17:30 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Maxwell Bernstein" />
@@ -138,7 +138,7 @@ for the JavaScript code in this tag.
 </head>
 <body>
 <div id="content">
-<h1 class="title">Rabbit VM</h1>
+<h1 class="title">Rabbit VM RFC</h1>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
@@ -158,11 +158,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-2-3-2">2.3.2. Assembler macros</a></li>
 </ul>
 </li>
-<li><a href="#sec-2-4">2.4. Addressing modes</a>
-<ul>
-<li><a href="#sec-2-4-1">2.4.1. <span class="todo TODO">TODO</span> FIGURE OUT IF DEREFERENCE IS BYTE OR WORD</a></li>
-</ul>
-</li>
+<li><a href="#sec-2-4">2.4. Addressing modes</a></li>
 </ul>
 </li>
 <li><a href="#sec-3">3. How?</a>
@@ -170,15 +166,16 @@ for the JavaScript code in this tag.
 <li><a href="#sec-3-1">3.1. Instruction formats</a></li>
 <li><a href="#sec-3-2">3.2. Stages of compilation</a>
 <ul>
-<li><a href="#sec-3-2-1">3.2.1. Preprocessing</a></li>
-<li><a href="#sec-3-2-2">3.2.2. Peephole optimization</a></li>
-<li><a href="#sec-3-2-3">3.2.3. Assembling</a></li>
+<li><a href="#sec-3-2-1">3.2.1. <span class="todo TODO">TODO</span> Preprocessing</a></li>
+<li><a href="#sec-3-2-2">3.2.2. <span class="todo TODO">TODO</span> Peephole optimization</a></li>
+<li><a href="#sec-3-2-3">3.2.3. <span class="todo TODO">TODO</span> Assembling</a></li>
 </ul>
 </li>
-<li><a href="#sec-3-3">3.3. <span class="todo TODO">TODO</span> </a>
+<li><a href="#sec-3-3">3.3. C interface</a></li>
+<li><a href="#sec-3-4">3.4. <span class="todo TODO">TODO</span> </a>
 <ul>
-<li><a href="#sec-3-3-1">3.3.1. Floating point</a></li>
-<li><a href="#sec-3-3-2">3.3.2. Memory layout</a></li>
+<li><a href="#sec-3-4-1">3.4.1. Floating point</a></li>
+<li><a href="#sec-3-4-2">3.4.2. Memory layout</a></li>
 </ul>
 </li>
 </ul>
@@ -197,7 +194,7 @@ then a program can run on more or less any hardware or virtualized architecture.
 </p>
 
 <p>
-Rabbit will be optimized per-architecture, while maintaining the same
+Rabbit can be optimized per-architecture, while maintaining the same
 interface. It may, for example, take advantage of Intel's SIMD behind the
 scenes.
 </p>
@@ -381,112 +378,112 @@ immediate value, denoted with a prefix of <code>$</code>: <code>move</code>, <co
 <tr>
 <td class="left"><code>0x1</code></td>
 <td class="left"><code>move</code></td>
-<td class="left"><code>move %r1, %r2</code></td>
-<td class="left"><code>r[2] := r[1]</code></td>
+<td class="left"><code>move %rB, %rC</code></td>
+<td class="left"><code>r[B] := r[C]</code></td>
 <td class="left">Move one space into another.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x2</code></td>
 <td class="left"><code>add</code></td>
-<td class="left"><code>add %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] + r[3]</code></td>
+<td class="left"><code>add %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] + r[C]</code></td>
 <td class="left">Add two spaces into a third.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x3</code></td>
 <td class="left"><code>sub</code></td>
-<td class="left"><code>sub %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] - r[3]</code></td>
+<td class="left"><code>sub %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] - r[C]</code></td>
 <td class="left">Subtract two spaces into a third. Sets <a href="#flags_section">flags</a>.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x4</code></td>
 <td class="left"><code>mul</code></td>
-<td class="left"><code>mul %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] * r[3]</code></td>
+<td class="left"><code>mul %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] * r[C]</code></td>
 <td class="left">Multiply two spaces into a third.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x5</code></td>
 <td class="left"><code>div</code></td>
-<td class="left"><code>div %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] / r[3]</code></td>
+<td class="left"><code>div %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] / r[C]</code></td>
 <td class="left">Divide two spaces into a third.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x6</code></td>
 <td class="left"><code>shr</code></td>
-<td class="left"><code>shr %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] &gt;&gt; r[3]</code></td>
+<td class="left"><code>shr %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] &gt;&gt; r[C]</code></td>
 <td class="left">Shift right one space a number of times.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x7</code></td>
 <td class="left"><code>shl</code></td>
-<td class="left"><code>shl %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] &lt;&lt; r[3]</code></td>
+<td class="left"><code>shl %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] &lt;&lt; r[C]</code></td>
 <td class="left">Shift left one space a number of times.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x8</code></td>
 <td class="left"><code>nand</code></td>
-<td class="left"><code>nand %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := not(r[2] &amp; r[3])</code></td>
+<td class="left"><code>nand %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := not(r[B] &amp; r[C])</code></td>
 <td class="left">NAND two spaces.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0x9</code></td>
 <td class="left"><code>xor</code></td>
-<td class="left"><code>xor %r1, %r2, %r3</code></td>
-<td class="left"><code>r[1] := r[2] ^ r[3]</code></td>
+<td class="left"><code>xor %rA, %rB, %rC</code></td>
+<td class="left"><code>r[A] := r[B] ^ r[C]</code></td>
 <td class="left">XOR two spaces.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0xA</code></td>
 <td class="left"><code>br</code></td>
-<td class="left"><code>br %r1</code></td>
-<td class="left"><code>goto r[1]</code></td>
-<td class="left">&#xa0;</td>
+<td class="left"><code>br %rC</code></td>
+<td class="left"><code>goto r[C]</code></td>
+<td class="left">Branch.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0xB</code></td>
 <td class="left"><code>brz</code></td>
-<td class="left"><code>brz %r1</code></td>
-<td class="left"><code>if (ZF set) goto r[1]</code></td>
+<td class="left"><code>brz %rC</code></td>
+<td class="left"><code>if (ZF set) goto r[C]</code></td>
 <td class="left">Branch if <code>ZF</code> is set.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0xC</code></td>
 <td class="left"><code>brnz</code></td>
-<td class="left"><code>brnz %r1</code></td>
-<td class="left"><code>if (!(ZF set)) goto r[1]</code></td>
+<td class="left"><code>brnz %rC</code></td>
+<td class="left"><code>if (!(ZF set)) goto r[C]</code></td>
 <td class="left">Branch if <code>ZF</code> is not set.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0xD</code></td>
 <td class="left"><code>in</code></td>
-<td class="left"><code>in %r1</code></td>
-<td class="left"><code>r[1] := getchar()</code></td>
+<td class="left"><code>in %rC</code></td>
+<td class="left"><code>r[C] := getchar()</code></td>
 <td class="left">Read one character from <code>stdin</code> into a space.</td>
 </tr>
 
 <tr>
 <td class="left"><code>0xE</code></td>
 <td class="left"><code>out</code></td>
-<td class="left"><code>out %r1</code></td>
-<td class="left"><code>putchar(r[1])</code></td>
+<td class="left"><code>out %rC</code></td>
+<td class="left"><code>putchar(r[C])</code></td>
 <td class="left">Print one character from a space to <code>stdout</code>.</td>
 </tr>
 </tbody>
@@ -522,44 +519,44 @@ denoted with a prefix of <code>$</code>: <code>cmp</code>, <code>not</code>, <co
 <tbody>
 <tr>
 <td class="left"><code>cmp</code></td>
-<td class="left"><code>cmp %r1, %r2</code></td>
-<td class="left"><code>sub %tmp, %r1, %r2</code></td>
+<td class="left"><code>cmp A, B</code></td>
+<td class="left"><code>sub %tmp, A, B</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>not</code></td>
-<td class="left"><code>not %r1, %r2</code></td>
-<td class="left"><code>nand %r1, %r2, %r2</code></td>
+<td class="left"><code>not A, B</code></td>
+<td class="left"><code>nand A, B, B</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>or</code></td>
-<td class="left"><code>or %r1, %r2, %r3</code></td>
-<td class="left">(A <code>nand</code> A) <code>nand</code> (B <code>nand</code> B)</td>
+<td class="left"><code>or A, B, C</code></td>
+<td class="left"><code>(A nand A) nand (B nand B)</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>and</code></td>
-<td class="left"><code>and %r1, %r2, %r3</code></td>
-<td class="left">(A <code>nand</code> B) <code>nand</code> (A <code>nand</code> B)</td>
+<td class="left"><code>and A, B, C</code></td>
+<td class="left"><code>nand A, B, C</code> // <code>not A, A</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>push</code></td>
-<td class="left"><code>push %r1</code></td>
-<td class="left"><code>move (%sp), $1</code>, <code>sub %sp, %sp, $1</code></td>
+<td class="left"><code>push A</code></td>
+<td class="left"><code>move (%sp), A</code> // <code>sub %sp, %sp, $1</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>pop</code></td>
-<td class="left"><code>pop %r1</code></td>
-<td class="left"><code>add %sp, %sp, $1</code>, <code>move %r1, (%sp)</code></td>
+<td class="left"><code>pop A</code></td>
+<td class="left"><code>add %sp, %sp, $1</code> // <code>move A, (%sp)</code></td>
 </tr>
 
 <tr>
 <td class="left"><code>call</code></td>
-<td class="left"><code>call %r1</code></td>
-<td class="left"><code>push %ip</code>, <code>br %r1</code></td>
+<td class="left"><code>call A</code></td>
+<td class="left"><code>push %ip</code> // <code>br A</code></td>
 </tr>
 
 <tr>
@@ -578,12 +575,8 @@ denoted with a prefix of <code>$</code>: <code>cmp</code>, <code>not</code>, <co
 <div class="outline-text-3" id="text-2-4">
 <p>
 There are two addressing modes: <code>%reg</code> and <code>(%reg)</code>. The former uses the value
-in the register, and the latter uses the byte TODO
+in the register, and the latter uses the word at the address in the register.
 </p>
-</div>
-
-<div id="outline-container-sec-2-4-1" class="outline-4">
-<h4 id="sec-2-4-1"><span class="section-number-4">2.4.1</span> <span class="todo TODO">TODO</span> FIGURE OUT IF DEREFERENCE IS BYTE OR WORD</h4>
 </div>
 </div>
 </div>
@@ -601,20 +594,25 @@ instr %rA
 </pre>
 
 <pre class="example">
-    +--Immediate?
-    | +--Addressing mode bit C
-    | |+--Addressing mode bit B
-    | ||+--Addressing mode bit A
-    | ||| +Dead space+    regB
-    v vvv vvvvvvvvvvvv    vvvv
-IIIIM DDD 000000000000CCCCBBBBAAAA
-^^^^                  ^^^^    ^^^^
-Opcode                regC    regA
+     +-----Immediate bit
+     |+----Addressing mode bit C
+     ||+---Addressing mode bit B
+     |||+--Addressing mode bit A
+     |||| +Dead space+     regB
+     vvvv vvvvvvvvvvvv     vvvv
+IIII MDDD 000000000000 CCCCBBBBAAAA
+^^^^                   ^^^^    ^^^^
+Opcode                 regC    regA
 
 VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Immediate value
 </pre>
+
+<p>
+Every bit in "Dead space" must be turned off. If one is turned on, the result
+is undefined.
+</p>
 
 <p>
 If the immediate bit is on, then the instruction disregards <code>rC</code> and instead
@@ -669,7 +667,7 @@ stores the result in memory at the address in <code>r7</code>.
 <h3 id="sec-3-2"><span class="section-number-3">3.2</span> Stages of compilation</h3>
 <div class="outline-text-3" id="text-3-2">
 </div><div id="outline-container-sec-3-2-1" class="outline-4">
-<h4 id="sec-3-2-1"><span class="section-number-4">3.2.1</span> Preprocessing</h4>
+<h4 id="sec-3-2-1"><span class="section-number-4">3.2.1</span> <span class="todo TODO">TODO</span> Preprocessing</h4>
 <div class="outline-text-4" id="text-3-2-1">
 <p>
 The preprocessor will be responsible for macro expansion and label to address
@@ -680,45 +678,98 @@ scenes.
 </div>
 
 <div id="outline-container-sec-3-2-2" class="outline-4">
-<h4 id="sec-3-2-2"><span class="section-number-4">3.2.2</span> Peephole optimization</h4>
-<div class="outline-text-4" id="text-3-2-2">
-<p>
-Ensure that, with macro expansion, we are not setting a register repeatedly. For
-example:
-</p>
-
-<pre class="example">
-push %r1
-</pre>
-
-<p>
-expands to
-</p>
-
-<pre class="example">
-move (%sp), %r1
-add %sp, %sp, $1
-</pre>
-
-<p>
-. If we had multiple pushes, it's quite possible that we would have multiple
-unnecessary <code>loadi</code> instructions, and not touch <code>r1</code> otherwise. Peephole
-optimization notices this and removes it.
-</p>
-</div>
+<h4 id="sec-3-2-2"><span class="section-number-4">3.2.2</span> <span class="todo TODO">TODO</span> Peephole optimization</h4>
 </div>
 
 <div id="outline-container-sec-3-2-3" class="outline-4">
-<h4 id="sec-3-2-3"><span class="section-number-4">3.2.3</span> Assembling</h4>
+<h4 id="sec-3-2-3"><span class="section-number-4">3.2.3</span> <span class="todo TODO">TODO</span> Assembling</h4>
 </div>
 </div>
 
 <div id="outline-container-sec-3-3" class="outline-3">
-<h3 id="sec-3-3"><span class="section-number-3">3.3</span> <span class="todo TODO">TODO</span> </h3>
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> C interface</h3>
 <div class="outline-text-3" id="text-3-3">
-</div><div id="outline-container-sec-3-3-1" class="outline-4">
-<h4 id="sec-3-3-1"><span class="section-number-4">3.3.1</span> Floating point</h4>
-<div class="outline-text-4" id="text-3-3-1">
+<div class="org-src-container">
+
+<pre class="src src-c">struct rabbit_s;
+typedef struct rabbit_s *rabbit_t;
+typedef uint32_t rabbit_word;
+
+typedef enum {
+    RB_SUCCESS,
+    RB_FAIL,
+    RB_OVERFLOW,
+    RB_ILLEGAL,
+} rabbit_status;
+
+enum {
+    RB_ZERO,
+    RB_R1,
+    RB_R2,
+    RB_R3,
+    RB_R4,
+    RB_R5,
+    RB_R6,
+    RB_R7,
+    RB_R8,
+    RB_R9,
+    RB_IP,
+    RB_SP,
+    RB_RET,
+    RB_TMP,
+    RB_FLAGS,
+} rabbit_reg;
+
+enum {
+    RB_HALT,
+    RB_MOVE,
+    RB_ADD,
+    RB_SUB,
+    RB_MUL,
+    RB_DIV,
+    RB_SHR,
+    RB_SHL,
+    RB_NAND,
+    RB_XOR,
+    RB_BR,
+    RB_BRZ,
+    RB_BRNZ,
+    RB_IN,
+    RB_OUT,
+} rabbit_instr;
+
+const unsigned char RB_ADDRA = 1U &lt;&lt; 0,
+    RB_ADDRB = 1U &lt;&lt; 1,
+    RB_ADDRC = 1U &lt;&lt; 2,
+    RB_IMMED = 1U &lt;&lt; 3;
+
+rabbit_t rabbit_new (rabbit_word mem_size);
+void rabbit_free (rabbit_t *r);
+
+rabbit_word rabbit_pack_reg (unsigned char opcode,
+			     unsigned char modes,
+			     unsigned char regc,
+			     unsigned char regb,
+			     unsigned char rega);
+
+rabbit_word rabbit_pack_imm (unsigned char opcode,
+			     unsigned char modes,
+			     unsigned char regc,
+			     unsigned char regb);
+
+void rabbit_load_code (rabbit_t r, rabbit_word *code, rabbit_word len);
+rabbit_status rabbit_run (rabbit_t r);
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3-4" class="outline-3">
+<h3 id="sec-3-4"><span class="section-number-3">3.4</span> <span class="todo TODO">TODO</span> </h3>
+<div class="outline-text-3" id="text-3-4">
+</div><div id="outline-container-sec-3-4-1" class="outline-4">
+<h4 id="sec-3-4-1"><span class="section-number-4">3.4.1</span> Floating point</h4>
+<div class="outline-text-4" id="text-3-4-1">
 <p>
 Floating point computation is left to the client (an exercise for the reader, if
 you will).
@@ -726,9 +777,9 @@ you will).
 </div>
 </div>
 
-<div id="outline-container-sec-3-3-2" class="outline-4">
-<h4 id="sec-3-3-2"><span class="section-number-4">3.3.2</span> Memory layout</h4>
-<div class="outline-text-4" id="text-3-3-2">
+<div id="outline-container-sec-3-4-2" class="outline-4">
+<h4 id="sec-3-4-2"><span class="section-number-4">3.4.2</span> Memory layout</h4>
+<div class="outline-text-4" id="text-3-4-2">
 <p>
 The memory layout is completely flat right now.
 </p>
@@ -740,8 +791,8 @@ The memory layout is completely flat right now.
 <div id="postamble" class="status">
 <p class="date">Date: May 16, 2015</p>
 <p class="author">Author: Maxwell Bernstein</p>
-<p class="date">Created: 2015-05-20 Wed 14:50</p>
-<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="date">Created: 2016-03-27 Sun 17:30</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
