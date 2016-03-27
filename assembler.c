@@ -231,10 +231,6 @@ struct prog process_file (FILE *input) {
 
 void write_file (FILE *output, struct prog asm_) {
     for (word i = 0; i < asm_.len; i++) {
-        char *instr_chars = (void *) &asm_.prog[i];
-        fwrite(&instr_chars[3], 1, 1, output);
-        fwrite(&instr_chars[2], 1, 1, output);
-        fwrite(&instr_chars[1], 1, 1, output);
-        fwrite(&instr_chars[0], 1, 1, output);
+        fwrite(&asm_.prog[i], sizeof(asm_.prog[i]), 1, output);
     }
 }
