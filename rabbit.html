@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Rabbit VM RFC</title>
-<!-- 2016-03-27 Sun 17:30 -->
+<!-- 2016-03-27 Sun 18:56 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Maxwell Bernstein" />
@@ -691,7 +691,10 @@ scenes.
 <div class="outline-text-3" id="text-3-3">
 <div class="org-src-container">
 
-<pre class="src src-c">struct rabbit_s;
+<pre class="src src-c">#ifndef RABBIT_H
+#define RABBIT_H
+
+struct rabbit_s;
 typedef struct rabbit_s *rabbit_t;
 typedef uint32_t rabbit_word;
 
@@ -759,6 +762,8 @@ rabbit_word rabbit_pack_imm (unsigned char opcode,
 
 void rabbit_load_code (rabbit_t r, rabbit_word *code, rabbit_word len);
 rabbit_status rabbit_run (rabbit_t r);
+
+#endif
 </pre>
 </div>
 </div>
@@ -791,7 +796,7 @@ The memory layout is completely flat right now.
 <div id="postamble" class="status">
 <p class="date">Date: May 16, 2015</p>
 <p class="author">Author: Maxwell Bernstein</p>
-<p class="date">Created: 2016-03-27 Sun 17:30</p>
+<p class="date">Created: 2016-03-27 Sun 18:56</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

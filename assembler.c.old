@@ -1,0 +1,44 @@
+struct blob_s {
+    uint32_t *data;
+    size_t length;
+};
+
+struct blob_s binblob assemble_file (FILE *fp) {
+    size_t len = 0;
+    ssize_t read;
+    char *line = NULL;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        free(line);
+    }
+}
+
+int assemble_and_write (char *in_fn) {
+    FILE *in_fp = fopen(in_fn, "r");
+    if (in_fp == NULL) {
+        return 1;
+    }
+
+    char *out_fn = outfile_from_infile(in_fn);
+    FILE *out_fp = fopen(out_fn, "wb");
+    if (out_fp == NULL) {
+        return 2;
+    }
+
+    struct blob_s binblob = assemble_file(in_fp);
+    if (binblob.data == NULL) {
+        return 3;
+    }
+
+    fclose(in_fp);
+    size_t written = fwrite(binblob.data, binblob.length, 1, out_fp);
+    if (written != binblob.length) {
+        return 4;
+    }
+
+    fclose(out_fp);
+    return 0;
+}
+
+int main () {
+    assemble_and_write("test.rbt");
+}
