@@ -1,15 +1,23 @@
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <sys/stat.h>
 
-#include "rabbit.h"
+typedef uint32_t rabbitw;
 
-struct rabbit_s {
-    rabbit_word regs[16];
-    bool running;
-    rabbit_word *mem;
-};
+typedef enum rabbits {
+    RB_SUCCESS, RB_FAIL, RB_OVERFLOW, RB_ILLEGAL,
+} rabbits;
+
+typedef enum rabbitr {
+    RB_ZERO, RB_R1, RB_R2, RB_R3, RB_R4, RB_R5, RB_R6, RB_R7, RB_R8, RB_R9,
+    RB_IP, RB_SP, RB_RET, RB_TMP, RB_FLAGS, RB_NUMREGS,
+} rabbitr;
+
+typedef enum rabbiti {
+    RB_HALT = 0, RB_MOVE, RB_ADD, RB_SUB, RB_MUL, RB_DIV, RB_SHR, RB_SHL,
+    RB_NAND, RB_XOR, RB_BR, RB_BRZ, RB_BRNZ, RB_IN, RB_OUT, RB_NUMINSTRS,
+} rabbiti;
 
 struct modes_s {
     uint8_t immediate : 1;
@@ -26,296 +34,173 @@ struct unpacked_s {
     uint8_t rega : 4;
 };
 
-rabbit_t rabbit_new (rabbit_word mem_size) {
-    rabbit_t rb = calloc(1, sizeof *rb);
-    if (rb == NULL) {
-        return NULL;
-    }
-
-    rb->mem = calloc(mem_size, sizeof *(rb->mem));
-    if (rb->mem == NULL) {
-        free(rb);
-        return NULL;
-    }
-
-    return rb;
+struct unpacked_s decode(rabbitw instr) {
+    static const unsigned char RB_ADDRA = 1U << 0,
+        RB_ADDRB = 1U << 1,
+        RB_ADDRC = 1U << 2,
+        RB_IMMED = 1U << 3;
+    uint8_t modes = (instr >> 24) & 0xF;
+    struct unpacked_s instr_unpacked = {
+        .modes = {
+            .immediate = modes & RB_IMMED,
+            .regc_deref = modes & RB_ADDRC,
+            .regb_deref = modes & RB_ADDRB,
+            .rega_deref = modes & RB_ADDRA,
+        },
+        .opcode = instr >> 28,
+        .regc = (instr >> 8) & 0xF,
+        .regb = (instr >> 4) & 0xF,
+        .rega = instr & 0xF,
+    };
+    return instr_unpacked;
 }
 
-void rabbit_free (rabbit_t *r) {
-    assert(r != NULL);
-    assert(*r != NULL);
-    assert((*r)->mem != NULL);
+struct abc_s {
+    rabbitw *dst, b, c;
+};
 
-    free((*r)->mem);
-    free(*r);
+#define fetch_immediate() mem[regs[RB_IP]++]
+
+static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
+    rabbitw *dst = i.modes.rega_deref ? &mem[regs[i.rega]] : &regs[i.rega];
+    rabbitw bval = i.modes.regb_deref ? mem[regs[i.regb]] : regs[i.regb];
+    rabbitw cval = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+    cval = i.modes.regc_deref ? mem[cval] : cval;
+    return (struct abc_s) { .dst = dst, .b = bval, .c = cval };
 }
 
-rabbit_word rabbit_pack_reg (uint8_t opcode,
-                             uint8_t modes,
-                             uint8_t regc,
-                             uint8_t regb,
-                             uint8_t rega) {
-    return 0U |
-        ((opcode & 0xF) << 28) |
-        ((modes & 0xF) << 24) |
-        ((regc << 8) & 0xF) |
-        ((regb << 4) & 0xF) |
-        (rega & 0xF);
-}
-
-rabbit_word rabbit_pack_imm (uint8_t opcode,
-                             uint8_t modes,
-                             uint8_t regc,
-                             uint8_t regb) {
-    return rabbit_pack_reg(opcode, modes, regc, regb, 0U);
-}
-
-void rabbit_load_code (rabbit_t r, rabbit_word *code, rabbit_word len) {
-
-}
-
-#define fetch_immediate() r.mem[r.regs[RB_IP]++]
-#define reg(R) r.regs[(R)]
-#define deref(R) r.mem[(R)]
-
-static inline void rabbit_instr_move (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *b_ptr = i.modes.regb_deref ? &deref(reg(i.regb)) : &reg(i.regb);
-    rabbit_word c_val = i.modes.immediate ? fetch_immediate() : reg(i.regc);
-    *b_ptr = i.modes.regc_deref ? deref(c_val) : reg(i.regc);
-}
-
-static inline void rabbit_instr_add (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Need to pass file to execute.\n");
+        return RB_FAIL;
     }
 
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
+    char *fn = argv[1];
+    FILE *fp = fopen(fn, "rb");
+    if (fp == NULL) {
+        fprintf(stderr, "Can't open `%s'.\n", fn);
+        return RB_FAIL;
     }
 
-    *a_ptr = b_val + c_val;
-}
-
-static inline void rabbit_instr_sub (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
+    struct stat st;
+    if (fstat(fileno(fp), &st) != 0) {
+        fprintf(stderr, "Can't stat `%s'.\n", fn);
+        fclose(fp);
+        return RB_FAIL;
     }
 
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
+    size_t stacksize = 1000;
+    off_t size = st.st_size;
+    rabbitw *mem = malloc(stacksize + size * sizeof *mem);
+    if (mem == NULL) {
+        fprintf(stderr, "Not enough memory. Could not allocate stack of size"
+                "%zu + program of size %lld.\n", stacksize, size);
+        return RB_FAIL;
     }
 
-    *a_ptr = b_val - c_val;
-}
-
-static inline void rabbit_instr_div (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
+    size_t i = 0;
+    rabbitw word;
+    while (fread(&word, sizeof word, 1, fp) != 0) {
+        mem[i++] = word;
     }
-    else {
-        c_val = reg(i.regc);
-    }
+    fclose(fp);
 
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = b_val / c_val;
-}
-
-static inline void rabbit_instr_mul (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = b_val * c_val;
-}
-
-static inline void rabbit_instr_shr (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = b_val >> c_val;
-}
-
-static inline void rabbit_instr_shl (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = b_val << c_val;
-}
-
-static inline void rabbit_instr_nand (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = ~(b_val & c_val);
-}
-
-static inline void rabbit_instr_xor (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word *a_ptr = i.modes.rega_deref ? &deref(reg(i.rega)) : &reg(i.rega);
-    rabbit_word b_val = i.modes.regb_deref ? deref(reg(i.regb)) : reg(i.regb);
-
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    *a_ptr = b_val ^ c_val;
-}
-
-static inline void rabbit_instr_br (struct rabbit_s r, struct unpacked_s i) {
-    rabbit_word c_val;
-    if (i.modes.immediate) {
-        c_val = fetch_immedate();
-    }
-    else {
-        c_val = reg(i.regc);
-    }
-
-    if (i.modes.regc_deref) {
-        c_val = deref(c_val);
-    }
-
-    r.regs[RB_IP] = c_val;
-}
-
-rabbit_status rabbit_run (rabbit_t mach) {
-    assert(r != NULL);
-
-    struct rabbit_s r = *mach;
-    r.running = true;
-
-    rabbit_word *regs = r.regs;
-    rabbit_word *mem = r.mem;
-
-    while (r.running) {
-        rabbit_word instr = mem[regs[RB_IP]++];
-        uint8_t modes = (instr >> 24) & 0xF;
-        struct unpacked_s instr_unpacked = {
-            .modes = {
-                .immediate = modes & RB_IMMED,
-                .regc_deref = modes & RB_ADDRC,
-                .regb_deref = modes & RB_ADDRB,
-                .rega_deref = modes & RB_ADDRA,
-            },
-            .opcode = instr >> 28,
-            .regc = (instr >> 8) & 0xF,
-            regb = (instr >> 4) & 0xF,
-            rega = instr & 0xF,
-        };
-
-        switch (instr) {
-            case RB_HALT:
-                r.running = false;
-                break;
-            case RB_MOVE:
-                rabbit_instr_move(r, instr_unpacked);
-                break;
-            case RB_ADD:
-                rabbit_instr_add(r, instr_unpacked);
-                break;
-            case RB_SUB:
-                rabbit_instr_sub(r, instr_unpacked);
-                break;
-            case RB_MUL:
-                break;
-            case RB_DIV:
-                break;
-            case RB_SHR:
-                break;
-            case RB_SHL:
-                break;
-            case RB_NAND:
-                break;
-            case RB_XOR:
-                break;
-            case RB_BR:
-                break;
-            case RB_BRZ:
-                break;
-            case RB_BRNZ:
-                break;
-            case RB_IN:
-                break;
-            case RB_OUT:
-                break;
-            default:
+    struct abc_s abc;
+    rabbitw regs[RB_NUMINSTRS] = { 0 };
+    regs[RB_SP] = i;
+    while (1) {
+        /* TODO: Read next word. */
+        rabbitw word = mem[regs[RB_IP]++];
+        struct unpacked_s i = decode(word);
+        switch (i.opcode) {
+        case RB_HALT:
+            free(mem);
+            return RB_SUCCESS;
+            break;
+        case RB_MOVE: {
+            rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            rabbitw *dst = i.modes.regb_deref ? &mem[regs[i.regb]] : &regs[i.regb];
+            *dst = i.modes.regc_deref ? mem[src] : src;
+            break;
+        }
+        case RB_ADD:
+            abc = getabc(regs, mem, i);
+            *abc.dst = abc.b + abc.c;
+            break;
+        case RB_SUB:
+            abc = getabc(regs, mem, i);
+            rabbitw res = abc.b - abc.c;
+            *abc.dst = res;
+            if (res == 0) {
+                /* Set zero flag. */
+                regs[RB_FLAGS] |= 0x2U;
+            }
+            break;
+        case RB_MUL:
+            abc = getabc(regs, mem, i);
+            *abc.dst = abc.b * abc.c;
+            break;
+        case RB_DIV:
+            abc = getabc(regs, mem, i);
+            if (abc.c == 0) {
                 return RB_ILLEGAL;
+            }
+
+            *abc.dst = abc.b / abc.c;
+            break;
+        case RB_SHR:
+            abc = getabc(regs, mem, i);
+            *abc.dst = abc.b >> abc.c;
+            break;
+        case RB_SHL:
+            abc = getabc(regs, mem, i);
+            *abc.dst = abc.b << abc.c;
+            break;
+        case RB_NAND:
+            abc = getabc(regs, mem, i);
+            *abc.dst = ~(abc.b & abc.c);
+            break;
+        case RB_XOR:
+            abc = getabc(regs, mem, i);
+            *abc.dst = abc.b ^ abc.c;
+            break;
+        case RB_BR: {
+            rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
+            break;
+        }
+        case RB_BRZ:
+            if ((regs[RB_FLAGS] & 0x2U) == 0) {
+                rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+                regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
+            }
+            break;
+        case RB_BRNZ:
+            if ((regs[RB_FLAGS] & 0x2U) != 0) {
+                rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+                regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
+            }
+            break;
+        case RB_IN: {
+            rabbitw dst = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            rabbitw *dstp = i.modes.regc_deref ? &mem[regs[i.regc]] : &regs[i.regc];
+            *dstp = getchar();
+            break;
+        }
+        case RB_OUT: {
+            rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            src = i.modes.regc_deref ? mem[src] : src;
+            putchar(src);
+            break;
+        }
+        default:
+            free(mem);
+            return RB_ILLEGAL;
+            break;
         }
     }
 
-    return RB_SUCCESS;
+    return 0;
 }
+
+#undef fetch_immediate
