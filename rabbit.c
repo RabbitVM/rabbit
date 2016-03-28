@@ -6,11 +6,11 @@
 typedef uint32_t rabbitw;
 
 typedef enum rabbits {
-    RB_SUCCESS, RB_FAIL, RB_OVERFLOW, RB_ILLEGAL,
+    RB_SUCCESS = 0, RB_FAIL, RB_OVERFLOW, RB_ILLEGAL,
 } rabbits;
 
 typedef enum rabbitr {
-    RB_ZERO, RB_R1, RB_R2, RB_R3, RB_R4, RB_R5, RB_R6, RB_R7, RB_R8, RB_R9,
+    RB_ZERO = 0, RB_R1, RB_R2, RB_R3, RB_R4, RB_R5, RB_R6, RB_R7, RB_R8, RB_R9,
     RB_IP, RB_SP, RB_RET, RB_TMP, RB_FLAGS, RB_NUMREGS,
 } rabbitr;
 
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     rabbitw *mem = malloc(stacksize + size * sizeof *mem);
     if (mem == NULL) {
         fprintf(stderr, "Not enough memory. Could not allocate stack of size"
-                "%zu + program of size %lld.\n", stacksize, size);
+                        "%zu + program of size %lld.\n", stacksize, size);
         return RB_FAIL;
     }
 
@@ -109,7 +109,6 @@ int main(int argc, char **argv) {
     rabbitw regs[RB_NUMINSTRS] = { 0 };
     regs[RB_SP] = i;
     while (1) {
-        /* TODO: Read next word. */
         rabbitw word = mem[regs[RB_IP]++];
         struct unpacked_s i = decode(word);
         switch (i.opcode) {
