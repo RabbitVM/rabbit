@@ -62,12 +62,24 @@ struct unpacked_s decode(uint32_t instr) {
     return instr_unpacked;
 }
 
-int main() {
-    FILE *fp = stdin;
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Need to pass file to execute.\n");
+        return 1;
+    }
+
+    char *fn = argv[1];
+    FILE *fp = fopen(fn, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Can't open `%s'.\n", fn);
+        return 1;
+    }
+
     while (1) {
         uint32_t word = 0;
-        size_t nread = fread(&word, sizeof(word), 1, fp);
+        size_t nread = fread(&word, sizeof word, 1, fp);
         if (nread == 0) {
+            fclose(fp);
             return 0;
         }
         printf("%.8x:\t", word);
