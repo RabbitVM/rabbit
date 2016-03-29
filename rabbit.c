@@ -1,4 +1,5 @@
-#include <stdio.h>A
+
+#include <stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -73,8 +74,6 @@ struct abc_s {
     rabbitw *dst, b, c;
 };
 
-#define fetch_immediate() mem[regs[RB_IP]++]
-
 /* Using the options/modes given by the user, fetch the destination address and
  * operands. */
 static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
@@ -84,6 +83,8 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
     cval = i.modes.regc_deref ? mem[cval] : cval;
     return (struct abc_s) { .dst = dst, .b = bval, .c = cval };
 }
+
+#define fetch_immediate() mem[regs[RB_IP]++]
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -127,15 +128,15 @@ int main(int argc, char **argv) {
     struct abc_s abc;
     rabbitw regs[RB_NUMINSTRS] = { 0 };
     regs[RB_SP] = i;
-
+    
     /* Main fetch-decode-execute loop. */
     while (1) {
         /* Fetch the current instruction word. */
         rabbitw word = mem[regs[RB_IP]++];
-
+    
         /* Decode it. */
         struct unpacked_s i = decode(word);
-
+    
         /* Execute it. */
         switch (i.opcode) {
         case RB_HALT:
@@ -173,7 +174,7 @@ int main(int argc, char **argv) {
                 free(mem);
                 return RB_ILLEGAL;
             }
-
+    
             *abc.dst = abc.b / abc.c;
             break;
         case RB_SHR:

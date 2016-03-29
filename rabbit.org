@@ -1,6 +1,6 @@
 #+title: Rabbit VM RFC
 #+author: Maxwell Bernstein
-#+date: May 16, 2015
+#+date: March 29, 2016
 # #+options: toc:nil
 
 #+html_head: <link rel="stylesheet" type="text/css" href="style.css" />
