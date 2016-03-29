@@ -4,3 +4,8 @@
 *.tex
 *.out
 *~
+assemble
+disassemble
+rabbit
+*.rbto
+*.dSYM
