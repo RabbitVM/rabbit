@@ -49,9 +49,9 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
 
 <<decode_function>>
 
-<<getabc>>
-
 <<fetch_immediate>>
+
+<<getabc>>
 #+end_src
 
 #+begin_src c :tangle rabbit.c :exports code :noweb tangle

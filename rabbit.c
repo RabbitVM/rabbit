@@ -68,6 +68,8 @@ struct unpacked_s decode(rabbitw instr) {
     };
 }
 
+#define fetch_immediate() mem[regs[RB_IP]++]
+
 /* Most instructions have a destination address and two operands. This struct
  * holds those. */
 struct abc_s {
@@ -83,8 +85,6 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
     cval = i.modes.regc_deref ? mem[cval] : cval;
     return (struct abc_s) { .dst = dst, .b = bval, .c = cval };
 }
-
-#define fetch_immediate() mem[regs[RB_IP]++]
 
 int main(int argc, char **argv) {
     if (argc != 2) {
