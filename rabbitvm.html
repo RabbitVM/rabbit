@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Rabbit VM Implementation</title>
-<!-- 2016-03-29 Tue 15:39 -->
+<!-- 2016-03-29 Tue 16:03 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Maxwell Bernstein" />
@@ -212,20 +212,20 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
 
 typedef uint32_t rabbitw;
 
-&lt;&lt;declarations&gt;&gt;
+{{{declarations}}}
 
 int main(int argc, char **argv) {
-    &lt;&lt;check_cli_arguments&gt;&gt;
+    {{{check_cli_arguments}}}
 
-    &lt;&lt;open_code_file&gt;&gt;
+    {{{open_code_file}}}
 
-    &lt;&lt;stat_code_file&gt;&gt;
+    {{{stat_code_file}}}
 
-    &lt;&lt;allocate_memory&gt;&gt;
+    {{{allocate_memory}}}
 
-    &lt;&lt;read_code_into_memory&gt;&gt;
+    {{{read_code_into_memory}}}
 
-    &lt;&lt;fetch_decode_execute_loop&gt;&gt;
+    {{{fetch_decode_execute_loop}}}
 
     return 0;
 }
@@ -444,7 +444,7 @@ while (1) {
     case RB_MOVE: {
 	/* Move is special because it has one source instead of two
 	 * operands. */
-	rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+	rabbitw src = i.modes.immediate   ? fetch_immediate()  : regs[i.regc];
 	rabbitw *dst = i.modes.regb_deref ? &amp;mem[regs[i.regb]] : &amp;regs[i.regb];
 	*dst = i.modes.regc_deref ? mem[src] : src;
 	break;
@@ -493,14 +493,14 @@ while (1) {
 	break;
     case RB_BR: {
 	/* Branch is special because it only has one argument. */
-	rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+	rabbitw src = i.modes.immediate  ? fetch_immediate() : regs[i.regc];
 	regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
 	break;
     }
     case RB_BRZ:
 	/* Branch if zero is special because it only has one argument. */
 	if ((regs[RB_FLAGS] &amp; 0x2U) == 0) {
-	    rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+	    rabbitw src = i.modes.immediate  ? fetch_immediate() : regs[i.regc];
 	    regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
 	}
 	break;
@@ -540,7 +540,7 @@ while (1) {
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Maxwell Bernstein</p>
-<p class="date">Created: 2016-03-29 Tue 15:39</p>
+<p class="date">Created: 2016-03-29 Tue 16:03</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

@@ -16,13 +16,13 @@ typedef enum rabbits {
 #+name: getabc
 #+begin_src c :exports code
 /* Most instructions have a destination address and two operands. This struct
- ,* holds those. */
+ * holds those. */
 struct abc_s {
     rabbitw *dst, b, c;
 };
 
 /* Using the options/modes given by the user, fetch the destination address and
- ,* operands. */
+ * operands. */
 static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
     rabbitw *dst = i.modes.rega_deref ? &mem[regs[i.rega]] : &regs[i.rega];
     rabbitw bval = i.modes.regb_deref ? mem[regs[i.regb]] : regs[i.regb];
@@ -39,19 +39,19 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
 
 #+name: declarations
 #+begin_src c :exports none
-<<status_enum>>
+{{{status_enum}}}
 
-<<register_enum>>
+{{{register_enum}}}
 
-<<instruction_enum>>
+{{{instruction_enum}}}
 
-<<unpacked_representation>>
+{{{unpacked_representation}}}
 
-<<decode_function>>
+{{{decode_function}}}
 
-<<fetch_immediate>>
+{{{fetch_immediate}}}
 
-<<getabc>>
+{{{getabc}}}
 #+end_src
 
 #+begin_src c :tangle rabbit.c :exports code :noweb tangle
@@ -62,20 +62,20 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
 
 typedef uint32_t rabbitw;
 
-<<declarations>>
+{{{declarations}}}
 
 int main(int argc, char **argv) {
-    <<check_cli_arguments>>
+    {{{check_cli_arguments}}}
 
-    <<open_code_file>>
+    {{{open_code_file}}}
 
-    <<stat_code_file>>
+    {{{stat_code_file}}}
 
-    <<allocate_memory>>
+    {{{allocate_memory}}}
 
-    <<read_code_into_memory>>
+    {{{read_code_into_memory}}}
 
-    <<fetch_decode_execute_loop>>
+    {{{fetch_decode_execute_loop}}}
 
     return 0;
 }
@@ -251,20 +251,20 @@ while (1) {
         break;
     case RB_MOVE: {
         /* Move is special because it has one source instead of two
-         ,* operands. */
-        rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+         * operands. */
+        rabbitw src = i.modes.immediate   ? fetch_immediate()  : regs[i.regc];
         rabbitw *dst = i.modes.regb_deref ? &mem[regs[i.regb]] : &regs[i.regb];
-        ,*dst = i.modes.regc_deref ? mem[src] : src;
+        *dst = i.modes.regc_deref ? mem[src] : src;
         break;
     }
     case RB_ADD:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = abc.b + abc.c;
+        *abc.dst = abc.b + abc.c;
         break;
     case RB_SUB:
         abc = getabc(regs, mem, i);
         rabbitw res = abc.b - abc.c;
-        ,*abc.dst = res;
+        *abc.dst = res;
         if (res == 0) {
             /* Set zero flag. */
             regs[RB_FLAGS] |= 0x2U;
@@ -272,7 +272,7 @@ while (1) {
         break;
     case RB_MUL:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = abc.b * abc.c;
+        *abc.dst = abc.b * abc.c;
         break;
     case RB_DIV:
         abc = getabc(regs, mem, i);
@@ -281,34 +281,34 @@ while (1) {
             return RB_ILLEGAL;
         }
 
-        ,*abc.dst = abc.b / abc.c;
+        *abc.dst = abc.b / abc.c;
         break;
     case RB_SHR:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = abc.b >> abc.c;
+        *abc.dst = abc.b >> abc.c;
         break;
     case RB_SHL:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = abc.b << abc.c;
+        *abc.dst = abc.b << abc.c;
         break;
     case RB_NAND:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = ~(abc.b & abc.c);
+        *abc.dst = ~(abc.b & abc.c);
         break;
     case RB_XOR:
         abc = getabc(regs, mem, i);
-        ,*abc.dst = abc.b ^ abc.c;
+        *abc.dst = abc.b ^ abc.c;
         break;
     case RB_BR: {
         /* Branch is special because it only has one argument. */
-        rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+        rabbitw src = i.modes.immediate  ? fetch_immediate() : regs[i.regc];
         regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
         break;
     }
     case RB_BRZ:
         /* Branch if zero is special because it only has one argument. */
         if ((regs[RB_FLAGS] & 0x2U) == 0) {
-            rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            rabbitw src = i.modes.immediate  ? fetch_immediate() : regs[i.regc];
             regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
         }
         break;
@@ -323,12 +323,12 @@ while (1) {
         /* Input is special because it does not have an argument. */
         rabbitw dst = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         rabbitw *dstp = i.modes.regc_deref ? &mem[regs[i.regc]] : &regs[i.regc];
-        ,*dstp = getchar();
+        *dstp = getchar();
         break;
     }
     case RB_OUT: {
         /* Output is special because it has one argument and no
-         ,* destination. */
+         * destination. */
         rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         src = i.modes.regc_deref ? mem[src] : src;
         putchar(src);
@@ -341,3 +341,8 @@ while (1) {
     }
 }
 #+end_src
+
+# Local Variables:
+# org-babel-noweb-wrap-start: "{{{"
+# org-babel-noweb-wrap-end: "}}}"
+# End:
