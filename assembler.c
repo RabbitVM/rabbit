@@ -22,23 +22,36 @@
 
 typedef uint32_t word;
 
-void error(char *msg, char *optional_arg);
+void error(const char *msg, const char *optional_arg);
 void check_usage(int argc);
-FILE *open_file(char *fn, char *mode);
+FILE *open_file(const char *fn, const char *mode);
 word file_lines(FILE *fp);
 void assemble_file(FILE *input, FILE *output);
 
 int main(int argc, char **argv) {
     check_usage(argc);
 
-    FILE *input = open_file(argv[1], "r");
-    FILE *output = open_file(argv[2], "wb");
+    const char *inputfn = argv[1];
+    size_t inputfnlen = strlen(inputfn);
+    char *outputfn = malloc(inputfnlen + 2 + 1);
+    if (outputfn == NULL) {
+        error("Could not allocate space for filename.", NULL);
+        return 1;
+    }
+
+    strncpy(outputfn, inputfn, inputfnlen);
+    outputfn[inputfnlen] = '.';
+    outputfn[inputfnlen + 1] = 'o';
+    outputfn[inputfnlen + 2] = 0;
+
+    FILE *input = open_file(inputfn, "r");
+    FILE *output = open_file(outputfn, "wb+");
     assemble_file(input, output);
     fclose(input);
     fclose(output);
 }
 
-void error(char *msg, char *optional_arg) {
+void error(const char *msg, const char *optional_arg) {
     fprintf(stderr, "Error: ");
 
     if (optional_arg) {
@@ -53,14 +66,14 @@ void error(char *msg, char *optional_arg) {
 }
 
 void check_usage(int argc) {
-    if (argc != 3) {
+    if (argc != 2) {
         error("Invalid usage. Please run like: "
-              "./asm <input_filename> <output_filename>",
+              "./asm <input_filename>",
               NULL);
     }
 }
 
-FILE *open_file(char *fn, char *mode) {
+FILE *open_file(const char *fn, const char *mode) {
     FILE *fp = fopen(fn, mode);
 
     if (fp == NULL) {
@@ -182,11 +195,16 @@ int read_int(FILE *input) {
     return val;
 }
 
-static struct instrarg read_arg(FILE *input) {
+int read_whitespace(FILE *input) {
     int c;
     do {
         c = fgetc(input);
     } while (c != EOF && isspace(c));
+    return c;
+}
+
+static struct instrarg read_arg(FILE *input) {
+    int c = read_whitespace(input);
     if (c == EOF) {
         error("Reached end of file while reading an instruction.", NULL);
     }
