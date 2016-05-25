@@ -1,0 +1,3 @@
+move r1 $0
+bif r1
+halt

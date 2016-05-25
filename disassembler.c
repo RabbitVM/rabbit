@@ -2,15 +2,18 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "rabbit_codewords.h"
+#include "rabbit_io.h"
+
 struct instr_s {
     const char *name;
     unsigned nargs;
 };
 
-static int NUM_INSTRS = 15;
+static int NUM_INSTRS = 16;
 static struct instr_s ops[] = {
     {"halt", 0},
-    {"move", 3},
+    {"move", 2},
     {"add",  3},
     {"sub",  3},
     {"mul",  3},
@@ -24,43 +27,8 @@ static struct instr_s ops[] = {
     {"brnz", 1},
     {"in",   1},
     {"out",  1},
+    {"bif",  1},
 };
-
-struct modes_s {
-    uint8_t immediate : 1;
-    uint8_t regc_deref : 1;
-    uint8_t regb_deref : 1;
-    uint8_t rega_deref : 1;
-};
-
-struct unpacked_s {
-    struct modes_s modes;
-    uint8_t opcode : 4;
-    uint8_t regc : 4;
-    uint8_t regb : 4;
-    uint8_t rega : 4;
-};
-
-struct unpacked_s decode(uint32_t instr) {
-    static const unsigned char RB_ADDRA = 1U << 0,
-        RB_ADDRB = 1U << 1,
-        RB_ADDRC = 1U << 2,
-        RB_IMMED = 1U << 3;
-    uint8_t modes = (instr >> 24) & 0xF;
-    struct unpacked_s instr_unpacked = {
-        .modes = {
-            .immediate = modes & RB_IMMED,
-            .regc_deref = modes & RB_ADDRC,
-            .regb_deref = modes & RB_ADDRB,
-            .rega_deref = modes & RB_ADDRA,
-        },
-        .opcode = instr >> 28,
-        .regc = (instr >> 8) & 0xF,
-        .regb = (instr >> 4) & 0xF,
-        .rega = instr & 0xF,
-    };
-    return instr_unpacked;
-}
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -77,7 +45,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         uint32_t word = 0;
-        size_t nread = fread(&word, sizeof word, 1, fp);
+        int nread = read_word(fp, &word);
         if (nread == 0) {
             fclose(fp);
             return 0;
@@ -91,22 +59,37 @@ int main(int argc, char **argv) {
 
         uint32_t immediate = 0;
         printf("%s", name);
-        switch(nargs) {
-        case 0:
-            break;
-        case 1:
+        if (nargs == 1 || nargs == 2 || nargs == 3) {
             putchar(' ');
-            if (i.modes.regc_deref) {
+            if (nargs == 2 || nargs == 3) {
+                if (nargs == 3) {
+                    if (i.modes.rega_deref == 1) {
+                        printf("(r%d), ", i.rega);
+                    }
+                    else {
+                        printf("r%d, ", i.rega);
+                    }
+                }
+
+                if (i.modes.regb_deref == 1) {
+                    printf("(r%d), ", i.regb);
+                }
+                else {
+                    printf("r%d, ", i.regb);
+                }
+            }
+
+            if (i.modes.regc_deref == 1) {
                 putchar('(');
             }
 
-            if (i.modes.immediate) {
-                nread = fread(&immediate, sizeof(immediate), 1, fp);
+            if (i.modes.immediate == 1) {
+                nread = read_word(fp, &immediate);
                 if (nread == 0) {
                     return 1;
                 }
 
-                printf("%d", immediate);
+                printf("$%d", immediate);
             }
             else {
                 printf("r%d", i.regc);
@@ -115,14 +98,7 @@ int main(int argc, char **argv) {
             if (i.modes.regc_deref) {
                 putchar(')');
             }
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        default:
-            break;
         }
-        putchar('\n');
+       putchar('\n');
     }
 }

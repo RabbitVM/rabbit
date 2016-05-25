@@ -2,9 +2,12 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
-typedef uint32_t rabbitw;
+#include "rabbit_types.h"
+#include "rabbit_io.h"
+#include "rabbit_codewords.h"
 
 /* Exit/error codes and statuses. */
 typedef enum rabbits {
@@ -20,53 +23,9 @@ typedef enum rabbitr {
 /* Instructions available for use. */
 typedef enum rabbiti {
     RB_HALT = 0, RB_MOVE, RB_ADD, RB_SUB, RB_MUL, RB_DIV, RB_SHR, RB_SHL,
-    RB_NAND, RB_XOR, RB_BR, RB_BRZ, RB_BRNZ, RB_IN, RB_OUT, RB_NUMINSTRS,
+    RB_NAND, RB_XOR, RB_BR, RB_BRZ, RB_BRNZ, RB_IN, RB_OUT, RB_BIF,
+    RB_NUMINSTRS,
 } rabbiti;
-
-/* Options for operand use. Is space C an immediate value or a register? Should
- * any of spaces A, B, and C be dereferenced? */
-struct modes_s {
-    uint8_t immediate : 1;
-    uint8_t regc_deref : 1;
-    uint8_t regb_deref : 1;
-    uint8_t rega_deref : 1;
-};
-
-/* Holds an unpacked representation of an instruction (sans immediate value, if
- * it has one). */
-struct unpacked_s {
-    struct modes_s modes;
-    uint8_t opcode : 4;
-    uint8_t regc : 4;
-    uint8_t regb : 4;
-    uint8_t rega : 4;
-};
-
-/* Transform the packed representation of an instruction into the unpacked
- * representation. */
-struct unpacked_s decode(rabbitw instr) {
-    /* Fetch the space modes from the instruction. */
-    uint8_t modes = (instr >> 24) & 0xF;
-
-    /* Offsets of the space modes in the mode nibble. */
-    static const unsigned char RB_ADDRA = 1U << 0,
-        RB_ADDRB = 1U << 1,
-        RB_ADDRC = 1U << 2,
-        RB_IMMED = 1U << 3;
-
-    return (struct unpacked_s) {
-        .modes = {
-            .immediate = modes & RB_IMMED,
-            .regc_deref = modes & RB_ADDRC,
-            .regb_deref = modes & RB_ADDRB,
-            .rega_deref = modes & RB_ADDRA,
-        },
-        .opcode = instr >> 28,
-        .regc = (instr >> 8) & 0xF,
-        .regb = (instr >> 4) & 0xF,
-        .rega = instr & 0xF,
-    };
-}
 
 #define fetch_immediate() mem[regs[RB_IP]++]
 
@@ -85,6 +44,37 @@ static struct abc_s getabc(rabbitw *regs, rabbitw *mem, struct unpacked_s i) {
     cval = i.modes.regc_deref ? mem[cval] : cval;
     return (struct abc_s) { .dst = dst, .b = bval, .c = cval };
 }
+
+rabbitw hello(rabbitw *regs, rabbitw *mem) {
+    (void)regs;
+    (void)mem;
+    fprintf(stdout, "hello\n");
+    return 0;
+}
+
+typedef rabbitw (*bif)(rabbitw *regs, rabbitw *mem);
+
+const static struct {
+    const char *name;
+    bif f;
+} biftable[] = {
+    { "hello", hello },
+    { NULL, NULL },
+};
+
+const unsigned int NUM_BIFS = 1;
+
+/*
+static bif biflookup(const char *name) {
+    for (int i = 0; biftable[i].name; i++) {
+        if (strcmp(biftable[i].name, name) == 0) {
+            return biftable[i].f;
+        }
+    }
+
+    return NULL;
+}
+*/
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -119,8 +109,9 @@ int main(int argc, char **argv) {
 
     /* Read the file into memory. */
     size_t i = 0;
-    rabbitw word;
-    while (fread(&word, sizeof word, 1, fp) != 0) {
+    rabbitw word = 0;
+    /* We cannot use fread because of endian-ness issues. */
+    while (read_word(fp, &word) != 0) {
         mem[i++] = word;
     }
     fclose(fp);
@@ -228,6 +219,20 @@ int main(int argc, char **argv) {
             putchar(src);
             break;
         }
+        case RB_BIF: {
+            rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
+            src = i.modes.regc_deref ? mem[src] : src;
+            if (src > NUM_BIFS) {
+                fprintf(stderr, "Invalid bif: `%u'.\n", src);
+                return RB_FAIL;
+            }
+            bif f = biftable[src].f;
+            f(regs, mem);
+            break;
+        }
+    /*    case RB_CFF:
+            break;
+    */
         default:
             free(mem);
             return RB_ILLEGAL;

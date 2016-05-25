@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
+#include <ctype.h>
 
 /*
   Instruction format is as follows:
@@ -20,33 +22,23 @@
 
 typedef uint32_t word;
 
-struct prog {
-    word *prog;
-    word len;
-};
+void error(char *msg, char *optional_arg);
+void check_usage(int argc);
+FILE *open_file(char *fn, char *mode);
+word file_lines(FILE *fp);
+void assemble_file(FILE *input, FILE *output);
 
-void error (char *msg, char *optional_arg);
-void check_usage (int argc);
-FILE *open_file (char *fn, char *mode);
-word file_lines (FILE *fp);
-struct prog process_file (FILE *input);
-void write_file (FILE *output, struct prog asm_);
-
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
     check_usage(argc);
 
     FILE *input = open_file(argv[1], "r");
-    struct prog asm_ = process_file(input);
-    fclose(input);
-
     FILE *output = open_file(argv[2], "wb");
-    write_file(output, asm_);
+    assemble_file(input, output);
+    fclose(input);
     fclose(output);
-
-    free(asm_.prog);
 }
 
-void error (char *msg, char *optional_arg) {
+void error(char *msg, char *optional_arg) {
     fprintf(stderr, "Error: ");
 
     if (optional_arg) {
@@ -60,7 +52,7 @@ void error (char *msg, char *optional_arg) {
     exit(EXIT_FAILURE);
 }
 
-void check_usage (int argc) {
+void check_usage(int argc) {
     if (argc != 3) {
         error("Invalid usage. Please run like: "
               "./asm <input_filename> <output_filename>",
@@ -68,7 +60,7 @@ void check_usage (int argc) {
     }
 }
 
-FILE *open_file (char *fn, char *mode) {
+FILE *open_file(char *fn, char *mode) {
     FILE *fp = fopen(fn, mode);
 
     if (fp == NULL) {
@@ -78,7 +70,7 @@ FILE *open_file (char *fn, char *mode) {
     return fp;
 }
 
-word file_lines (FILE *fp) {
+word file_lines(FILE *fp) {
     word lines = 0;
 
     /* Copied straight from http://stackoverflow.com/a/12733630/569183 */
@@ -92,12 +84,12 @@ word file_lines (FILE *fp) {
     return lines;
 }
 
-static int instr_lookup (char *instr) {
+static int instr_lookup(char *instr) {
     static char reverse_ops[][7] = {
         "halt", "move", "add", "sub", "mul", "div", "shr", "shl", "nand",
-        "xor", "br", "brz", "brnz", "in", "out"
+        "xor", "br", "brz", "brnz", "in", "out", "bif",
     };
-    static int NUM_INSTRS = 15;
+    static int NUM_INSTRS = 16;
 
     for (int i = 0; i < NUM_INSTRS; i++) {
         if (strcmp(instr, reverse_ops[i]) == 0) {
@@ -110,7 +102,7 @@ static int instr_lookup (char *instr) {
 
 enum ops {
     HALT = 0, MOVE, ADD, SUB, MUL, DIV, SHR, SHL, NAND,
-    XOR, BR, BRZ, BRNZ, IN, OUT
+    XOR, BR, BRZ, BRNZ, IN, OUT, BIF,
 };
 
 static const char OP_WIDTH = 4;
@@ -119,51 +111,109 @@ static const char OP_LSB = 32 - OP_WIDTH;
 static const unsigned char OP_MASK = 0xF;
 static const unsigned char REG_MASK = 0xF;
 
-static word three_register (unsigned char op, int ra, int rb, int rc) {
-    static const char RA_LSB = 0;
-    static const char RB_LSB = 4;
-    static const char RC_LSB = 8;
+enum { REG, IMMINT, IMMSTR };
+
+struct instrarg {
+    int argtype;
+    union {
+        word i;
+        char *s;
+    };
+};
+
+struct instrarg emptyarg() {
+    return (struct instrarg) { .argtype = REG, .i = 0 };
+}
+
+typedef struct {
+    int is_imm;
+    word instr;
+    word imm;
+} instr_t;
+
+static instr_t three_register(unsigned char op,
+                              struct instrarg a,
+                              struct instrarg b,
+                              struct instrarg c) {
+    static const unsigned char RA_LSB = 0;
+    static const unsigned char RB_LSB = 4;
+    static const unsigned char RC_LSB = 8;
+    static const unsigned char MODES_LSB = 24;
+    static const unsigned char
+        RB_ADDRA = 1U << 0,
+        RB_ADDRB = 1U << 1,
+        RB_ADDRC = 1U << 2,
+        RB_IMMED = 1U << 3;
 
     word w = 0;
     w |= (op & OP_MASK) << OP_LSB;
-    w |= (ra & REG_MASK) << RA_LSB;
-    w |= (rb & REG_MASK) << RB_LSB;
-    w |= (rc & REG_MASK) << RC_LSB;
+    w |= (a.i & REG_MASK) << RA_LSB;
+    w |= (b.i & REG_MASK) << RB_LSB;
+    if (c.argtype == IMMINT) {
+        w |= (RB_IMMED << MODES_LSB);
+    }
+    else {
+        w |= (c.i & REG_MASK) << RC_LSB;
+    }
 
-    return w;
+    instr_t instr = { .is_imm = 0, .instr = w, .imm = 0 };
+    if (c.argtype == IMMINT) {
+        instr.is_imm = 1;
+        instr.imm = c.i;
+    }
+
+    return instr;
 }
 
-static unsigned read_reg (FILE *input) {
-    unsigned reg = 0;
-    fscanf(input, " r%d", &reg);
-    return reg;
+static struct instrarg read_arg(FILE *input) {
+    int c, val;
+    do {
+        c = fgetc(input);
+    } while (c != EOF && isspace(c));
+    if (c == EOF) {
+        error("Reached end of file while reading an instruction.", NULL);
+    }
+
+    switch(c) {
+    case '$':
+        assert(fscanf(input, "%d", &val) == 1);
+        return (struct instrarg) { .argtype = IMMINT, .i = val };
+        break;
+    case 'r':
+        assert(fscanf(input, "%d", &val) == 1);
+        return (struct instrarg) { .argtype = REG, .i = val };
+        break;
+    /* TODO: Gotta read until next non-escaped double quote... */
+    /* case '"': */
+    /*     assert(fscanf(fp, "%d", &val) == 1); */
+    /*     return (struct instrarg) { .argtype = IMMSTR, .i = val }; */
+    default:
+        error("Could not parse instruction argument.", NULL);
+        break;
+    }
+
+    return emptyarg();
 }
 
-word read_three_register (FILE *input, unsigned instr) {
-    unsigned char ra = read_reg(input);
-    unsigned char rb = read_reg(input);
-    unsigned char rc = read_reg(input);
-    return three_register(instr, ra, rb, rc);
+instr_t read_three_register(FILE *input, unsigned instr) {
+    struct instrarg a = read_arg(input);
+    struct instrarg b = read_arg(input);
+    struct instrarg c = read_arg(input);
+    return three_register(instr, a, b, c);
 }
 
-word read_two_register (FILE *input, unsigned instr) {
-    unsigned char rb = read_reg(input);
-    unsigned char rc = read_reg(input);
-    return three_register(instr, 0, rb, rc);
+instr_t read_two_register(FILE *input, unsigned instr) {
+    struct instrarg b = read_arg(input);
+    struct instrarg c = read_arg(input);
+    return three_register(instr, emptyarg(), b, c);
 }
 
-word read_one_register (FILE *input, unsigned instr) {
-    unsigned char rc = read_reg(input);
-    return three_register(instr, 0, 0, rc);
+instr_t read_one_register(FILE *input, unsigned instr) {
+    struct instrarg c = read_arg(input);
+    return three_register(instr, emptyarg(), emptyarg(), c);
 }
 
-static word read_val (FILE *input) {
-    word val = 0;
-    fscanf(input, " %u", &val);
-    return val;
-}
-
-typedef word (* read_func)(FILE *, unsigned);
+typedef instr_t (* read_func)(FILE *, unsigned);
 
 read_func read_arr[] = {
     [MOVE] = read_two_register,
@@ -179,57 +229,52 @@ read_func read_arr[] = {
     [BRNZ] = read_one_register,
     [IN] = read_one_register,
     [OUT] = read_one_register,
+    [BIF] = read_one_register,
 };
 
-static word read_instr (FILE *input, char *instr) {
-    int instr_num = instr_lookup(instr);
-    word w = 0;
+static instr_t read_instr(FILE *input, char *op_str) {
+    int instr_num = instr_lookup(op_str);
+    instr_t instr;
 
     switch (instr_num) {
         case -1:
-            error("Do not know instruction: `%s'.", instr);
+            error("Do not know instruction: `%s'.", op_str);
             break;
 
         case HALT:
-            w = three_register(HALT, 0, 0, 0);
+            instr = three_register(HALT, emptyarg(), emptyarg(), emptyarg());
             break;
 
         case MOVE: case ADD: case SUB: case MUL: case DIV: case SHR: case SHL:
-        case NAND: case XOR: case BR: case BRNZ: case IN: case OUT:
-            w = read_arr[instr_num](input, instr_num);
+        case NAND: case XOR: case BR: case BRNZ: case IN: case OUT: case BIF:
+            instr = read_arr[instr_num](input, instr_num);
             break;
 
         default:
-            w = read_three_register(input, instr_num);
+            instr = read_three_register(input, instr_num);
             break;
     }
 
-    return w;
+    return instr;
 }
 
-struct prog process_file (FILE *input) {
-    struct prog asm_ = { NULL, file_lines(input) };
-
-    word *assembled = calloc(asm_.len, sizeof * assembled);
-
-    if (assembled == NULL) {
-        error("Could not allocate memory for file contents.", NULL);
+void write_word(FILE *fp, word *w) {
+    unsigned char *wordp = (unsigned char *)w;
+    for (int i = 3; i >= 0; i--) {
+        fwrite(&wordp[i], sizeof wordp[i], 1, fp);
     }
-
-    for (word i = 0; i < asm_.len; i++) {
-        char instr[7];
-        fscanf(input, "%s", instr);
-        //printf("%d\tinstr: %s\n", i, instr);
-        assembled[i] = read_instr(input, instr);
-    }
-
-    asm_.prog = assembled;
-
-    return asm_;
 }
 
-void write_file (FILE *output, struct prog asm_) {
-    for (word i = 0; i < asm_.len; i++) {
-        fwrite(&asm_.prog[i], sizeof(asm_.prog[i]), 1, output);
+void assemble_file(FILE *input, FILE *output) {
+    word lines = file_lines(input);
+
+    for (word i = 0; i < lines; i++) {
+        char instr_string[7];
+        fscanf(input, "%s", instr_string);
+        instr_t instr = read_instr(input, instr_string);
+        write_word(output, &instr.instr);
+        if (instr.is_imm == 1) {
+            write_word(output, &instr.imm);
+        }
     }
 }

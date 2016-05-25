@@ -1,0 +1,40 @@
+body,
+#content p {
+    margin: 0 auto;
+    max-width: 700px;
+}
+
+h1, h2, h3, h4, h5, h6,
+#content ol,
+.footdef {
+    margin-left: 20px;
+}
+
+#content ol {
+    max-width: 480px;
+    text-align: justify;
+    padding-left: 15px;
+}
+
+#content p,
+#content h2,
+.footdef {
+    position: relative;
+    max-width: 500px;
+    text-align: justify;
+}
+
+/* paragraphs preceded by paragraphs have space above */
+#content p + p {
+    margin-top: 20px;
+}
+
+#content li + li {
+    margin-top: 10px;
+}
+
+#postamble {
+    margin: 0 auto;
+    max-width: 500px;
+    margin-top: 20px;
+}
