@@ -115,14 +115,12 @@ enum { REG, IMMINT, IMMSTR };
 
 struct instrarg {
     int argtype;
-    union {
-        word i;
-        char *s;
-    };
+    int is_deref;
+    word i;
 };
 
 struct instrarg emptyarg() {
-    return (struct instrarg) { .argtype = REG, .i = 0 };
+    return (struct instrarg) { .argtype = REG, .is_deref = 0, .i = 0 };
 }
 
 typedef struct {
@@ -145,16 +143,26 @@ static instr_t three_register(unsigned char op,
         RB_ADDRC = 1U << 2,
         RB_IMMED = 1U << 3;
 
+    uint8_t modes = 0;
+    if (a.is_deref == 1) {
+        modes |= RB_ADDRA;
+    }
+    if (b.is_deref == 1) {
+        modes |= RB_ADDRB;
+    }
+    if (c.is_deref == 1) {
+        modes |= RB_ADDRC;
+    }
+    if (c.argtype == IMMINT) {
+        modes |= RB_IMMED;
+    }
+
     word w = 0;
     w |= (op & OP_MASK) << OP_LSB;
     w |= (a.i & REG_MASK) << RA_LSB;
     w |= (b.i & REG_MASK) << RB_LSB;
-    if (c.argtype == IMMINT) {
-        w |= (RB_IMMED << MODES_LSB);
-    }
-    else {
-        w |= (c.i & REG_MASK) << RC_LSB;
-    }
+    w |= (c.i & REG_MASK) << RC_LSB;
+    w |= (modes & 0xF) << MODES_LSB;
 
     instr_t instr = { .is_imm = 0, .instr = w, .imm = 0 };
     if (c.argtype == IMMINT) {
@@ -165,8 +173,17 @@ static instr_t three_register(unsigned char op,
     return instr;
 }
 
+int read_int(FILE *input) {
+    int val;
+    if (fscanf(input, "%d", &val) != 1) {
+        error("Could not parse instruction argument. "
+                "Was expecting integer.", NULL);
+    }
+    return val;
+}
+
 static struct instrarg read_arg(FILE *input) {
-    int c, val;
+    int c;
     do {
         c = fgetc(input);
     } while (c != EOF && isspace(c));
@@ -174,25 +191,32 @@ static struct instrarg read_arg(FILE *input) {
         error("Reached end of file while reading an instruction.", NULL);
     }
 
-    switch(c) {
-    case '$':
-        assert(fscanf(input, "%d", &val) == 1);
-        return (struct instrarg) { .argtype = IMMINT, .i = val };
-        break;
-    case 'r':
-        assert(fscanf(input, "%d", &val) == 1);
-        return (struct instrarg) { .argtype = REG, .i = val };
-        break;
-    /* TODO: Gotta read until next non-escaped double quote... */
-    /* case '"': */
-    /*     assert(fscanf(fp, "%d", &val) == 1); */
-    /*     return (struct instrarg) { .argtype = IMMSTR, .i = val }; */
-    default:
-        error("Could not parse instruction argument.", NULL);
-        break;
+    struct instrarg arg = emptyarg();
+    if (c == '(') {
+        arg.is_deref = 1;
+        c = fgetc(input);
     }
 
-    return emptyarg();
+    switch(c) {
+        case '$':
+            arg.i = read_int(input);
+            arg.argtype = IMMINT;
+            break;
+        case 'r':
+            arg.i = read_int(input);
+            arg.argtype = REG;
+            break;
+        default:
+            error("Could not parse instruction argument. Expecting: $x, rx.",
+                  NULL);
+            break;
+    }
+
+    if (arg.is_deref == 1 && fgetc(input) != ')') {
+        error("Could not parse instruction argument. Expecting: ).", NULL);
+    }
+
+    return arg;
 }
 
 instr_t read_three_register(FILE *input, unsigned instr) {

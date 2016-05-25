@@ -1,0 +1,5 @@
+move r1 $10
+move (r1) $97
+out (r1)
+out $10
+halt
