@@ -276,28 +276,21 @@ read_func read_arr[] = {
 
 static instr_t read_instr(FILE *input, char *op_str) {
     int instr_num = instr_lookup(op_str);
-    instr_t instr;
 
     switch (instr_num) {
         case -1:
             error("Do not know instruction: `%s'.", op_str);
-            break;
 
         case HALT:
-            instr = three_register(HALT, emptyarg(), emptyarg(), emptyarg());
-            break;
+            return three_register(HALT, emptyarg(), emptyarg(), emptyarg());
 
         case MOVE: case ADD: case SUB: case MUL: case DIV: case SHR: case SHL:
         case NAND: case XOR: case BR: case BRNZ: case IN: case OUT: case BIF:
-            instr = read_arr[instr_num](input, instr_num);
-            break;
+            return read_arr[instr_num](input, instr_num);
 
         default:
-            instr = read_three_register(input, instr_num);
-            break;
+            return read_three_register(input, instr_num);
     }
-
-    return instr;
 }
 
 void write_word(FILE *fp, word *w) {
