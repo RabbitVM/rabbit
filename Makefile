@@ -1,4 +1,3 @@
-
 CC=gcc
 CFLAGS=-Wall -Wextra -Wpedantic
 LFLAGS=
@@ -6,7 +5,7 @@ RABBIT_OBJS=rabbit.o rabbit_io.o rabbit_codewords.o
 ASSEMBLER_OBJS=assembler.o rabbit_io.o
 DISASSEMBLER_OBJS=disassembler.o rabbit_io.o rabbit_codewords.o
 
-all: rabbit assembler disassembler
+all: rabbit rabbit-asm rabbit-dis
 
 clean:
 	rm -f rabbit rabbit-asm rabbit-dis
@@ -15,10 +14,10 @@ clean:
 rabbit: $(RABBIT_OBJS)
 	$(CC) $(CFLAGS) $(LFLAGS) $(RABBIT_OBJS) -o rabbit
 
-assembler: $(ASSEMBLER_OBJS)
+rabbit-asm: $(ASSEMBLER_OBJS)
 	$(CC) $(CFLAGS) $(LFLAGS) $(ASSEMBLER_OBJS) -o rabbit-asm
 
-disassembler: $(DISASSEMBLER_OBJS)
+rabbit-dis: $(DISASSEMBLER_OBJS)
 	$(CC) $(CFLAGS) $(LFLAGS) $(DISASSEMBLER_OBJS) -o rabbit-dis
 
 %.o: %.c
