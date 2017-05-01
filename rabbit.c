@@ -206,7 +206,6 @@ int main(int argc, char **argv) {
             break;
         case RB_IN: {
             /* Input is special because it does not have an argument. */
-            rabbitw dst = i.modes.immediate ? fetch_immediate() : regs[i.regc];
             rabbitw *dstp = i.modes.regc_deref ? &mem[regs[i.regc]] : &regs[i.regc];
             *dstp = getchar();
             break;
