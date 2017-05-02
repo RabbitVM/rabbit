@@ -234,10 +234,10 @@ removed with no consequences.
 /* Options for operand use. Is space C an immediate value or a register? Should
  * any of spaces A, B, and C be dereferenced? */
 struct modes_s {
-    uint8_t immediate  : 1;
-    uint8_t regc_deref : 1;
-    uint8_t regb_deref : 1;
-    uint8_t rega_deref : 1;
+    uint8_t immediate;
+    uint8_t regc_deref;
+    uint8_t regb_deref;
+    uint8_t rega_deref;
 };
 #+end_src
 
@@ -250,10 +250,10 @@ modes struct along with the opcode and three operands.
  * it has one). */
 struct unpacked_s {
     struct modes_s modes;
-    uint8_t opcode : 4;
-    uint8_t regc   : 4;
-    uint8_t regb   : 4;
-    uint8_t rega   : 4;
+    uint8_t opcode;
+    uint8_t regc;
+    uint8_t regb;
+    uint8_t rega;
 };
 #+end_src
 
