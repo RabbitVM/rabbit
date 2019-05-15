@@ -36,10 +36,9 @@ int main(int argc, char **argv) {
 
     uint32_t immediate = 0;
     printf("%s", name);
-    // TODO make this less of a hack
     if (i.opcode == Bif) {
       assert(i.rega < kNumBifs);
-      printf(" %s\n", bif_table[i.rega]);
+      printf(" %s\n", bif_names[i.rega]);
       continue;
     }
 

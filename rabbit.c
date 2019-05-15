@@ -40,27 +40,6 @@ typedef enum rabbitr {
 
 const unsigned kZeroFlag = 0x2U;
 
-/* Instructions available for use. */
-typedef enum rabbiti {
-  RB_HALT = 0,
-  RB_MOVE,
-  RB_ADD,
-  RB_SUB,
-  RB_MUL,
-  RB_DIV,
-  RB_SHR,
-  RB_SHL,
-  RB_NAND,
-  RB_XOR,
-  RB_BR,
-  RB_BRZ,
-  RB_BRNZ,
-  RB_IN,
-  RB_OUT,
-  RB_BIF,
-  RB_NUMINSTRS,
-} rabbiti;
-
 #define fetch_immediate() mem[regs[RB_IP]++]
 
 /* Most instructions have a destination address and two operands. This struct
@@ -88,17 +67,9 @@ rabbitw hello(rabbitw *regs, rabbitw *mem) {
 
 typedef rabbitw (*bif)(rabbitw *regs, rabbitw *mem);
 
-#define FN_ENTRY(id, name) {#name, name},
+#define FN_ENTRY(id, fn_name) fn_name,
 
-static const struct {
-  const char *name;
-  bif f;
-} biftable[] = {
-    // clang-format off
-    BIF_TABLE(FN_ENTRY)
-    {NULL, NULL},
-    // clang-format on
-};
+static const bif bif_functions[] = {BIF_TABLE(FN_ENTRY)};
 
 #undef FN_ENTRY
 
@@ -145,7 +116,7 @@ int main(int argc, char **argv) {
   fclose(fp);
 
   struct abc_s abc;
-  rabbitw regs[RB_NUMINSTRS] = {0};
+  rabbitw regs[RB_NUMREGS] = {0};
   regs[RB_SP] = i;
 
   /* Main fetch-decode-execute loop. */
@@ -158,11 +129,11 @@ int main(int argc, char **argv) {
 
     /* Execute it. */
     switch (i.opcode) {
-    case RB_HALT:
+    case Halt:
       free(mem);
       return RB_SUCCESS;
       break;
-    case RB_MOVE: {
+    case Move: {
       /* Move is special because it has one source instead of two
        * operands. */
       rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
@@ -170,11 +141,11 @@ int main(int argc, char **argv) {
       *dst = i.modes.regc_deref ? mem[src] : src;
       break;
     }
-    case RB_ADD:
+    case Add:
       abc = getabc(regs, mem, i);
       *abc.dst = abc.b + abc.c;
       break;
-    case RB_SUB:
+    case Sub:
       abc = getabc(regs, mem, i);
       rabbitw res = abc.b - abc.c;
       *abc.dst = res;
@@ -182,11 +153,11 @@ int main(int argc, char **argv) {
         regs[RB_FLAGS] |= kZeroFlag;
       }
       break;
-    case RB_MUL:
+    case Mul:
       abc = getabc(regs, mem, i);
       *abc.dst = abc.b * abc.c;
       break;
-    case RB_DIV:
+    case Div:
       abc = getabc(regs, mem, i);
       if (abc.c == 0) {
         free(mem);
@@ -195,49 +166,49 @@ int main(int argc, char **argv) {
 
       *abc.dst = abc.b / abc.c;
       break;
-    case RB_SHR:
+    case Shr:
       abc = getabc(regs, mem, i);
       *abc.dst = abc.b >> abc.c;
       break;
-    case RB_SHL:
+    case Shl:
       abc = getabc(regs, mem, i);
       *abc.dst = abc.b << abc.c;
       break;
-    case RB_NAND:
+    case Nand:
       abc = getabc(regs, mem, i);
       *abc.dst = ~(abc.b & abc.c);
       break;
-    case RB_XOR:
+    case Xor:
       abc = getabc(regs, mem, i);
       *abc.dst = abc.b ^ abc.c;
       break;
-    case RB_BR: {
+    case Br: {
       /* Branch is special because it only has one argument. */
       rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
       regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
       break;
     }
-    case RB_BRZ:
+    case Brz:
       /* Branch if zero is special because it only has one argument. */
       if ((regs[RB_FLAGS] & kZeroFlag) == 0) {
         rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
       }
       break;
-    case RB_BRNZ:
+    case Brnz:
       /* Branch not zero is special because it only has one argument. */
       if ((regs[RB_FLAGS] & kZeroFlag) != 0) {
         rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
       }
       break;
-    case RB_IN: {
+    case In: {
       /* Input is special because it does not have an argument. */
       rabbitw *dstp = i.modes.regc_deref ? &mem[regs[i.regc]] : &regs[i.regc];
       *dstp = getchar();
       break;
     }
-    case RB_OUT: {
+    case Out: {
       /* Output is special because it has one argument and no
        * destination. */
       rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
@@ -245,14 +216,14 @@ int main(int argc, char **argv) {
       putchar(src);
       break;
     }
-    case RB_BIF: {
+    case Bif: {
       rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
       src = i.modes.regc_deref ? mem[src] : src;
       if (src > kNumBifs) {
         fprintf(stderr, "Invalid bif: `%u'.\n", src);
         return RB_FAIL;
       }
-      bif f = biftable[src].f;
+      bif f = bif_functions[src];
       f(regs, mem);
       break;
     }

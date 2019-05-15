@@ -191,7 +191,7 @@ int read_whitespace(FILE *input) {
 
 int bif_lookup(char *bif_name) {
   for (int i = 0; i < kNumBifs; i++) {
-    if (strcmp(bif_name, bif_table[i]) == 0) {
+    if (strcmp(bif_name, bif_names[i]) == 0) {
       return i;
     }
   }

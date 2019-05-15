@@ -18,7 +18,7 @@ enum BifId {
 
 #define BIF_NAME(id, name) #name,
 
-const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
+const char *bif_names[] = {BIF_TABLE(BIF_NAME)};
 
 #undef BIF_NAME
 
