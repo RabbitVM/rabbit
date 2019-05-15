@@ -118,7 +118,7 @@ enum ops {
     XOR, BR, BRZ, BRNZ, IN, OUT, BIF,
 };
 
-static const char OP_WIDTH = 4;
+#define OP_WIDTH 4
 static const char OP_LSB = 32 - OP_WIDTH;
 
 static const unsigned char OP_MASK = 0xF;
@@ -276,11 +276,11 @@ read_func read_arr[] = {
 
 static instr_t read_instr(FILE *input, char *op_str) {
     int instr_num = instr_lookup(op_str);
+    if (instr_num < 0) {
+      error("Do not know instruction: `%s'.", op_str);
+    }
 
     switch (instr_num) {
-        case -1:
-            error("Do not know instruction: `%s'.", op_str);
-
         case HALT:
             return three_register(HALT, emptyarg(), emptyarg(), emptyarg());
 

@@ -54,7 +54,7 @@ rabbitw hello(rabbitw *regs, rabbitw *mem) {
 
 typedef rabbitw (*bif)(rabbitw *regs, rabbitw *mem);
 
-const static struct {
+static const struct {
     const char *name;
     bif f;
 } biftable[] = {
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     rabbitw *mem = malloc(stacksize + size * sizeof *mem);
     if (mem == NULL) {
         fprintf(stderr, "Not enough memory. Could not allocate stack of size"
-                        "%zu + program of size %lld.\n", stacksize, size);
+                        "%zu + program of size %ld.\n", stacksize, size);
         return RB_FAIL;
     }
 
@@ -119,15 +119,15 @@ int main(int argc, char **argv) {
     struct abc_s abc;
     rabbitw regs[RB_NUMINSTRS] = { 0 };
     regs[RB_SP] = i;
-    
+
     /* Main fetch-decode-execute loop. */
     while (1) {
         /* Fetch the current instruction word. */
         rabbitw word = mem[regs[RB_IP]++];
-    
+
         /* Decode it. */
         struct unpacked_s i = decode(word);
-    
+
         /* Execute it. */
         switch (i.opcode) {
         case RB_HALT:
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
                 free(mem);
                 return RB_ILLEGAL;
             }
-    
+
             *abc.dst = abc.b / abc.c;
             break;
         case RB_SHR:
