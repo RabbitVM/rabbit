@@ -7,24 +7,6 @@
 #include "rabbit_codewords.h"
 #include "rabbit_io.h"
 
-struct instr_s {
-  const char *name;
-  unsigned nargs;
-};
-
-static int NUM_INSTRS = 16;
-static struct instr_s ops[] = {
-    {"halt", 0}, {"move", 2}, {"add", 3},  {"sub", 3}, {"mul", 3}, {"div", 3},
-    {"shr", 3},  {"shl", 3},  {"nand", 3}, {"xor", 3}, {"br", 1},  {"brz", 1},
-    {"brnz", 1}, {"in", 1},   {"out", 1},  {"bif", 1},
-};
-
-#define BIF_NAME(id, name) #name,
-
-static const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
-
-#undef BIF_NAME
-
 int main(int argc, char **argv) {
   if (argc != 2) {
     fprintf(stderr, "Need to pass file to execute.\n");
@@ -48,14 +30,14 @@ int main(int argc, char **argv) {
     printf("%.8x:\t", word);
 
     struct unpacked_s i = decode(word);
-    assert(i.opcode < NUM_INSTRS);
-    const char *name = ops[i.opcode].name;
-    unsigned nargs = ops[i.opcode].nargs;
+    assert(i.opcode < kNumInstrs);
+    const char *name = instr_nargs[i.opcode].name;
+    unsigned nargs = instr_nargs[i.opcode].nargs;
 
     uint32_t immediate = 0;
     printf("%s", name);
     // TODO make this less of a hack
-    if (strcmp(name, "bif") == 0) {
+    if (i.opcode == Bif) {
       assert(i.rega < kNumBifs);
       printf(" %s\n", bif_table[i.rega]);
       continue;

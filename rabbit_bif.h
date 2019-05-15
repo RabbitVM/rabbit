@@ -16,4 +16,10 @@ enum BifId {
 
 #undef BIF_ID
 
+#define BIF_NAME(id, name) #name,
+
+static const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
+
+#undef BIF_NAME
+
 #endif

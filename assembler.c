@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "rabbit_bif.h"
+#include "rabbit_codewords.h"
 
 /*
   Instruction format is as follows:
@@ -99,39 +100,13 @@ word file_lines(FILE *fp) {
 }
 
 static int instr_lookup(char *instr) {
-  static char reverse_ops[][7] = {
-      "halt", "move", "add", "sub", "mul",  "div", "shr", "shl",
-      "nand", "xor",  "br",  "brz", "brnz", "in",  "out", "bif",
-  };
-  static int NUM_INSTRS = 16;
-
-  for (int i = 0; i < NUM_INSTRS; i++) {
-    if (strcmp(instr, reverse_ops[i]) == 0) {
+  for (int i = 0; i < kNumInstrs; i++) {
+    if (strcmp(instr, instr_nargs[i].name) == 0) {
       return i;
     }
   }
-
-  return -1;
+  return kInvalidInstr;
 }
-
-enum ops {
-  HALT = 0,
-  MOVE,
-  ADD,
-  SUB,
-  MUL,
-  DIV,
-  SHR,
-  SHL,
-  NAND,
-  XOR,
-  BR,
-  BRZ,
-  BRNZ,
-  IN,
-  OUT,
-  BIF,
-};
 
 #define OP_WIDTH 4
 static const char OP_LSB = 32 - OP_WIDTH;
@@ -214,12 +189,6 @@ int read_whitespace(FILE *input) {
   return c;
 }
 
-#define BIF_NAME(id, name) #name,
-
-static const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
-
-#undef BIF_NAME
-
 int bif_lookup(char *bif_name) {
   for (int i = 0; i < kNumBifs; i++) {
     if (strcmp(bif_name, bif_table[i]) == 0) {
@@ -280,65 +249,32 @@ static struct instrarg read_arg(FILE *input) {
   return arg;
 }
 
-instr_t read_three_register(FILE *input, unsigned instr) {
-  struct instrarg a = read_arg(input);
-  struct instrarg b = read_arg(input);
-  struct instrarg c = read_arg(input);
-  return three_register(instr, a, b, c);
-}
-
-instr_t read_two_register(FILE *input, unsigned instr) {
-  struct instrarg b = read_arg(input);
-  struct instrarg c = read_arg(input);
-  return three_register(instr, emptyarg(), b, c);
-}
-
-instr_t read_one_register(FILE *input, unsigned instr) {
-  struct instrarg c = read_arg(input);
-  return three_register(instr, emptyarg(), emptyarg(), c);
-}
-
-typedef instr_t (*read_func)(FILE *, unsigned);
-
-static const read_func read_arr[] = {
-    [MOVE] = read_two_register,  [ADD] = read_three_register,
-    [SUB] = read_three_register, [MUL] = read_three_register,
-    [DIV] = read_three_register, [SHR] = read_three_register,
-    [SHL] = read_three_register, [NAND] = read_three_register,
-    [XOR] = read_three_register, [BR] = read_one_register,
-    [BRNZ] = read_one_register,  [IN] = read_one_register,
-    [OUT] = read_one_register,   [BIF] = read_one_register,
-};
-
 static instr_t read_instr(FILE *input, char *op_str) {
-  int instr_num = instr_lookup(op_str);
-  if (instr_num < 0) {
+  unsigned instr = instr_lookup(op_str);
+  if (instr == kInvalidInstr) {
     error("Do not know instruction: `%s'.", op_str);
   }
-
-  switch (instr_num) {
-  case HALT:
-    return three_register(HALT, emptyarg(), emptyarg(), emptyarg());
-
-  case MOVE:
-  case ADD:
-  case SUB:
-  case MUL:
-  case DIV:
-  case SHR:
-  case SHL:
-  case NAND:
-  case XOR:
-  case BR:
-  case BRNZ:
-  case IN:
-  case OUT:
-  case BIF:
-    return read_arr[instr_num](input, instr_num);
-
-  default:
-    return read_three_register(input, instr_num);
+  unsigned nargs = instr_nargs[instr].nargs;
+  if (nargs == 0) {
+    return three_register(instr, emptyarg(), emptyarg(), emptyarg());
   }
+  if (nargs == 1) {
+    struct instrarg c = read_arg(input);
+    return three_register(instr, emptyarg(), emptyarg(), c);
+  }
+  if (nargs == 2) {
+    struct instrarg b = read_arg(input);
+    struct instrarg c = read_arg(input);
+    return three_register(instr, emptyarg(), b, c);
+  }
+  if (nargs == 3) {
+    struct instrarg a = read_arg(input);
+    struct instrarg b = read_arg(input);
+    struct instrarg c = read_arg(input);
+    return three_register(instr, a, b, c);
+  }
+  error("Unreachable (op `%s').", op_str);
+  assert(0);
 }
 
 void write_word(FILE *fp, word *w) {
