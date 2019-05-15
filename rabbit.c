@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "rabbit_bif.h"
 #include "rabbit_codewords.h"
 #include "rabbit_io.h"
 #include "rabbit_types.h"
@@ -85,27 +86,19 @@ rabbitw hello(rabbitw *regs, rabbitw *mem) {
 
 typedef rabbitw (*bif)(rabbitw *regs, rabbitw *mem);
 
+#define FN_ENTRY(id, name) {#name, name},
+
 static const struct {
   const char *name;
   bif f;
 } biftable[] = {
-    {"hello", hello},
+    // clang-format off
+    BIF_TABLE(FN_ENTRY)
     {NULL, NULL},
+    // clang-format on
 };
 
-const unsigned int NUM_BIFS = 1;
-
-/*
-static bif biflookup(const char *name) {
-    for (int i = 0; biftable[i].name; i++) {
-        if (strcmp(biftable[i].name, name) == 0) {
-            return biftable[i].f;
-        }
-    }
-
-    return NULL;
-}
-*/
+#undef FN_ENTRY
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -254,7 +247,7 @@ int main(int argc, char **argv) {
     case RB_BIF: {
       rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
       src = i.modes.regc_deref ? mem[src] : src;
-      if (src > NUM_BIFS) {
+      if (src > kNumBifs) {
         fprintf(stderr, "Invalid bif: `%u'.\n", src);
         return RB_FAIL;
       }

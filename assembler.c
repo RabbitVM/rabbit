@@ -265,7 +265,7 @@ instr_t read_one_register(FILE *input, unsigned instr) {
 
 typedef instr_t (*read_func)(FILE *, unsigned);
 
-read_func read_arr[] = {
+static const read_func read_arr[] = {
     [MOVE] = read_two_register,  [ADD] = read_three_register,
     [SUB] = read_three_register, [MUL] = read_three_register,
     [DIV] = read_three_register, [SHR] = read_three_register,
