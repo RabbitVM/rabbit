@@ -38,6 +38,8 @@ typedef enum rabbitr {
   RB_NUMREGS,
 } rabbitr;
 
+const unsigned kZeroFlag = 0x2U;
+
 /* Instructions available for use. */
 typedef enum rabbiti {
   RB_HALT = 0,
@@ -177,8 +179,7 @@ int main(int argc, char **argv) {
       rabbitw res = abc.b - abc.c;
       *abc.dst = res;
       if (res == 0) {
-        /* Set zero flag. */
-        regs[RB_FLAGS] |= 0x2U;
+        regs[RB_FLAGS] |= kZeroFlag;
       }
       break;
     case RB_MUL:
@@ -218,14 +219,14 @@ int main(int argc, char **argv) {
     }
     case RB_BRZ:
       /* Branch if zero is special because it only has one argument. */
-      if ((regs[RB_FLAGS] & 0x2U) == 0) {
+      if ((regs[RB_FLAGS] & kZeroFlag) == 0) {
         rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
       }
       break;
     case RB_BRNZ:
       /* Branch not zero is special because it only has one argument. */
-      if ((regs[RB_FLAGS] & 0x2U) != 0) {
+      if ((regs[RB_FLAGS] & kZeroFlag) != 0) {
         rabbitw src = i.modes.immediate ? fetch_immediate() : regs[i.regc];
         regs[RB_IP] = i.modes.regc_deref ? mem[src] : src;
       }
