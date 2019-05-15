@@ -9,7 +9,8 @@
 // clang-format off
 enum BifId {
   BIF_TABLE(BIF_ID)
-  kNumBifs
+  kNumBifs,
+  kInvalidBif,
 };
 // clang-format on
 

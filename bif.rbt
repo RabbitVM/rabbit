@@ -1,3 +1,2 @@
-move r1 $0
-bif r1
+bif @hello
 halt

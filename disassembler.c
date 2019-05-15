@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
+#include "rabbit_bif.h"
 #include "rabbit_codewords.h"
 #include "rabbit_io.h"
 
@@ -16,6 +18,12 @@ static struct instr_s ops[] = {
     {"shr", 3},  {"shl", 3},  {"nand", 3}, {"xor", 3}, {"br", 1},  {"brz", 1},
     {"brnz", 1}, {"in", 1},   {"out", 1},  {"bif", 1},
 };
+
+#define BIF_NAME(id, name) #name,
+
+static const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
+
+#undef BIF_NAME
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -46,6 +54,13 @@ int main(int argc, char **argv) {
 
     uint32_t immediate = 0;
     printf("%s", name);
+    // TODO make this less of a hack
+    if (strcmp(name, "bif") == 0) {
+      assert(i.rega < kNumBifs);
+      printf(" %s\n", bif_table[i.rega]);
+      continue;
+    }
+
     if (nargs == 1 || nargs == 2 || nargs == 3) {
       putchar(' ');
       if (nargs == 2 || nargs == 3) {

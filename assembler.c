@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "rabbit_bif.h"
+
 /*
   Instruction format is as follows:
 
@@ -212,6 +214,35 @@ int read_whitespace(FILE *input) {
   return c;
 }
 
+#define BIF_NAME(id, name) #name,
+
+static const char *bif_table[] = {BIF_TABLE(BIF_NAME)};
+
+#undef BIF_NAME
+
+int bif_lookup(char *bif_name) {
+  for (int i = 0; i < kNumBifs; i++) {
+    if (strcmp(bif_name, bif_table[i]) == 0) {
+      return i;
+    }
+  }
+  return kInvalidBif;
+}
+
+int read_bif(FILE *input) {
+  char bif_name[12] = {0};
+  if (fscanf(input, "%11s", bif_name) != 1) {
+    error("Could not parse bif argument. "
+          "Was expecting bif name.",
+          NULL);
+  }
+  int bif_id = bif_lookup(bif_name);
+  if (bif_id == kInvalidBif) {
+    error("Invalid bif with name `%s'.", bif_name);
+  }
+  return bif_id;
+}
+
 static struct instrarg read_arg(FILE *input) {
   int c = read_whitespace(input);
   if (c == EOF) {
@@ -232,6 +263,10 @@ static struct instrarg read_arg(FILE *input) {
   case 'r':
     arg.i = read_int(input);
     arg.argtype = REG;
+    break;
+  case '@':
+    arg.i = read_bif(input);
+    arg.argtype = IMMINT;
     break;
   default:
     error("Could not parse instruction argument. Expecting: $x, rx.", NULL);
