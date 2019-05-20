@@ -11,14 +11,10 @@
 /*
   Instruction format is as follows:
 
-  add r0 r1 r2
+  add r0, r1, r2
   out r1
 
-  cmov r1 r2 r3
-
-  I am reasonably sure that blank lines are OK, and that there must be
-  precisely one space between instruction and register, and register and
-  register. No extra spaces ANYWHERE ELSE. Unchecked runtime error.
+  cmov r1, r2, r3
 
   MAKE SURE YOU HAVE A BLANK LINE AT THE END!!!
 */
